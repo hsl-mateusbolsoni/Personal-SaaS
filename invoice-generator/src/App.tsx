@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ChakraProvider } from '@chakra-ui/react';
 import { theme } from './theme';
 import { AppShell } from './components/layout/AppShell';
@@ -15,7 +15,7 @@ function App() {
 
   return (
     <ChakraProvider theme={theme}>
-      <BrowserRouter>
+      <HashRouter>
         <AppShell>
           <Routes>
             <Route path="/" element={isFirstTime ? <Navigate to="/settings" replace /> : <Dashboard />} />
@@ -26,7 +26,7 @@ function App() {
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </AppShell>
-      </BrowserRouter>
+      </HashRouter>
     </ChakraProvider>
   );
 }
