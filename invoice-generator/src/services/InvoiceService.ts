@@ -2,7 +2,7 @@ import type { IInvoiceRepository } from '../repositories/interfaces/InvoiceRepos
 import type { IClientRepository } from '../repositories/interfaces/ClientRepository';
 import type { ISettingsRepository } from '../repositories/interfaces/SettingsRepository';
 import type { Invoice } from '../types/invoice';
-import type { CompanySettings } from '../types/settings';
+import type { AppSettings } from '../types/settings';
 import { calculateInvoiceTotals } from '../utils/currency';
 import { eventBus } from '../utils/events';
 
@@ -23,8 +23,9 @@ export class InvoiceService {
 
   async createInvoice(draft: Partial<Invoice>): Promise<Invoice> {
     const settings = await this.settingsRepo.get();
-    const invoiceNumber = draft.invoiceNumber || this.generateInvoiceNumber(settings);
-    const taxRate = draft.taxRate ?? settings.defaultTaxRate;
+    const appSettings = await this.settingsRepo.getAppSettings();
+    const invoiceNumber = draft.invoiceNumber || this.generateInvoiceNumber(appSettings);
+    const taxRate = draft.taxRate ?? appSettings.defaultTaxRate;
     const items = draft.items || [];
     const discount = draft.discount || null;
     const totals = calculateInvoiceTotals(items, taxRate, discount);
@@ -35,7 +36,7 @@ export class InvoiceService {
       date: draft.date || new Date().toISOString().split('T')[0],
       dueDate: draft.dueDate || this.calculateDueDate(30),
       status: 'draft',
-      currency: draft.currency || settings.defaultCurrency,
+      currency: draft.currency || appSettings.defaultCurrency,
       taxRate,
       from: draft.from || {
         name: settings.name,
@@ -95,8 +96,8 @@ export class InvoiceService {
     return invoices.filter((inv) => inv.status !== 'paid' && inv.dueDate < today);
   }
 
-  generateInvoiceNumber(settings: CompanySettings): string {
-    return `${settings.invoiceNumberPrefix}${settings.nextInvoiceNumber.toString().padStart(3, '0')}`;
+  generateInvoiceNumber(appSettings: AppSettings): string {
+    return `${appSettings.invoiceNumberPrefix}${appSettings.nextInvoiceNumber.toString().padStart(3, '0')}`;
   }
 
   calculateDueDate(daysFromNow: number): string {

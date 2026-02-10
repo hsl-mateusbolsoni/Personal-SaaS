@@ -39,9 +39,10 @@ export const WYSIWYGEditor = ({
   onAddItemRef,
 }: WYSIWYGEditorProps) => {
   const settings = useSettingsStore((s) => s.settings);
+  const appSettings = useSettingsStore((s) => s.appSettings);
 
   const [invoiceNumber, setInvoiceNumber] = useState(
-    initial?.invoiceNumber || `${settings.invoiceNumberPrefix}${settings.nextInvoiceNumber.toString().padStart(3, '0')}`
+    initial?.invoiceNumber || `${appSettings.invoiceNumberPrefix}${appSettings.nextInvoiceNumber.toString().padStart(3, '0')}`
   );
   const [date, setDate] = useState(initial?.date || todayISO());
   const [dueDate, setDueDate] = useState(initial?.dueDate || futureDateISO(30));
@@ -129,8 +130,7 @@ export const WYSIWYGEditor = ({
       logo={logo}
       visibility={visibility}
       businessId={settings.businessId}
-      paymentType={settings.paymentType}
-      bankDetails={settings.bankDetails}
+      paymentMethod={settings.paymentMethods.find((m) => m.isDefault)}
       onChangeInvoiceNumber={setInvoiceNumber}
       onChangeDate={setDate}
       onChangeDueDate={setDueDate}

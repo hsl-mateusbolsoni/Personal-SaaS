@@ -1,10 +1,14 @@
 import type { ISettingsRepository } from '../interfaces/SettingsRepository';
-import type { CompanySettings } from '../../types/settings';
+import type { CompanySettings, AppSettings } from '../../types/settings';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 
 export class LocalStorageSettingsRepository implements ISettingsRepository {
   async get(_userId?: string): Promise<CompanySettings> {
     return useSettingsStore.getState().settings;
+  }
+
+  async getAppSettings(): Promise<AppSettings> {
+    return useSettingsStore.getState().appSettings;
   }
 
   async update(updates: Partial<CompanySettings>, _userId?: string): Promise<CompanySettings> {

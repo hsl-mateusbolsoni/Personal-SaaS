@@ -1,22 +1,25 @@
 import { Box, Flex, Text, Image } from '@chakra-ui/react';
 import { formatCurrency } from '../../utils/currency';
-import { PAYMENT_TYPE_LABELS } from '../../config/payments';
+import { PAYMENT_TYPE_LABELS, getPaymentMethodSummary } from '../../types/payment';
 import type { Invoice } from '../../types/invoice';
-import type { BankDetails, PaymentType } from '../../types/settings';
+import type { PaymentMethod } from '../../types/payment';
 
 interface InvoiceCanvasProps {
   invoice: Invoice;
   businessId?: string;
-  paymentType?: PaymentType;
-  bankDetails?: BankDetails;
+  paymentMethod?: PaymentMethod;
   logo?: string | null;
 }
 
-export const InvoiceCanvas = ({ invoice, businessId, paymentType, bankDetails, logo }: InvoiceCanvasProps) => {
-  const hasBankDetails = bankDetails && (
-    bankDetails.bankName ||
-    bankDetails.accountNumber ||
-    bankDetails.iban
+export const InvoiceCanvas = ({ invoice, businessId, paymentMethod, logo }: InvoiceCanvasProps) => {
+  const hasPaymentDetails = paymentMethod && (
+    paymentMethod.bankTransfer?.bankName ||
+    paymentMethod.bankTransfer?.accountNumber ||
+    paymentMethod.pix?.pixKey ||
+    paymentMethod.paypal?.email ||
+    paymentMethod.wise?.email ||
+    paymentMethod.crypto?.walletAddress ||
+    paymentMethod.other?.instructions
   );
 
   return (
@@ -83,18 +86,34 @@ export const InvoiceCanvas = ({ invoice, businessId, paymentType, bankDetails, l
         </Box>
 
         {/* Payment Details */}
-        {hasBankDetails && (
+        {hasPaymentDetails && paymentMethod && (
           <Box mb={4}>
             <Text fontSize="8pt" color="#888" textTransform="uppercase" letterSpacing="0.05em" mb={1}>
-              Payment{paymentType && ` — ${PAYMENT_TYPE_LABELS[paymentType]}`}
+              Payment — {PAYMENT_TYPE_LABELS[paymentMethod.type]}
             </Text>
             <Box fontSize="8pt" color="#555">
-              {bankDetails?.bankName && <Text mt="2px">{bankDetails.bankName}</Text>}
-              {bankDetails?.accountName && <Text mt="2px">{bankDetails.accountName}</Text>}
-              {bankDetails?.accountNumber && <Text mt="2px">Account: {bankDetails.accountNumber}</Text>}
-              {bankDetails?.routingNumber && <Text mt="2px">Routing: {bankDetails.routingNumber}</Text>}
-              {bankDetails?.iban && <Text mt="2px">IBAN: {bankDetails.iban}</Text>}
-              {bankDetails?.swiftBic && <Text mt="2px">SWIFT: {bankDetails.swiftBic}</Text>}
+              <Text mt="2px">{getPaymentMethodSummary(paymentMethod)}</Text>
+              {paymentMethod.type === 'bank_transfer' && paymentMethod.bankTransfer && (
+                <>
+                  {paymentMethod.bankTransfer.accountName && <Text mt="2px">{paymentMethod.bankTransfer.accountName}</Text>}
+                  {paymentMethod.bankTransfer.accountNumber && <Text mt="2px">Account: {paymentMethod.bankTransfer.accountNumber}</Text>}
+                  {paymentMethod.bankTransfer.routingNumber && <Text mt="2px">Routing: {paymentMethod.bankTransfer.routingNumber}</Text>}
+                  {paymentMethod.bankTransfer.iban && <Text mt="2px">IBAN: {paymentMethod.bankTransfer.iban}</Text>}
+                  {paymentMethod.bankTransfer.swiftBic && <Text mt="2px">SWIFT: {paymentMethod.bankTransfer.swiftBic}</Text>}
+                </>
+              )}
+              {paymentMethod.type === 'pix' && paymentMethod.pix && (
+                <>
+                  <Text mt="2px">PIX: {paymentMethod.pix.pixKey}</Text>
+                  {paymentMethod.pix.recipientName && <Text mt="2px">{paymentMethod.pix.recipientName}</Text>}
+                </>
+              )}
+              {paymentMethod.type === 'crypto' && paymentMethod.crypto && (
+                <Text mt="2px">{paymentMethod.crypto.walletAddress}</Text>
+              )}
+              {paymentMethod.type === 'other' && paymentMethod.other?.instructions && (
+                <Text mt="2px" whiteSpace="pre-line">{paymentMethod.other.instructions}</Text>
+              )}
             </Box>
           </Box>
         )}

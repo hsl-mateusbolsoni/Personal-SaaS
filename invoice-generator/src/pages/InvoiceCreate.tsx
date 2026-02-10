@@ -14,18 +14,29 @@ import type { CurrencyCode } from '../types/currency';
 export const InvoiceCreate = () => {
   const { create } = useInvoiceActions();
   const settings = useSettingsStore((s) => s.settings);
+  const appSettings = useSettingsStore((s) => s.appSettings);
   const submitRef = useRef<(() => void) | null>(null);
   const addItemRef = useRef<(() => void) | null>(null);
 
+  const defaultPayment = settings.paymentMethods.find((m) => m.isDefault);
+  const hasPaymentMethod = defaultPayment && (
+    defaultPayment.bankTransfer?.bankName ||
+    defaultPayment.pix?.pixKey ||
+    defaultPayment.paypal?.email ||
+    defaultPayment.wise?.email ||
+    defaultPayment.crypto?.walletAddress ||
+    defaultPayment.other?.instructions
+  );
+
   const [totalCents, setTotalCents] = useState(0);
-  const [currency, setCurrency] = useState<CurrencyCode>(settings.defaultCurrency);
-  const [taxRate, setTaxRate] = useState(settings.defaultTaxRate);
+  const [currency, setCurrency] = useState<CurrencyCode>(appSettings.defaultCurrency);
+  const [taxRate, setTaxRate] = useState(appSettings.defaultTaxRate);
   const [discount, setDiscount] = useState<Invoice['discount']>(null);
   const [visibility, setVisibility] = useState<VisibilitySettings>({
     showLogo: true,
     showBusinessId: !!settings.businessId,
-    showBankDetails: !!(settings.bankDetails?.bankName || settings.bankDetails?.iban),
-    showTax: settings.defaultTaxRate > 0,
+    showBankDetails: !!hasPaymentMethod,
+    showTax: appSettings.defaultTaxRate > 0,
     showDiscount: false,
     showNotes: false,
   });

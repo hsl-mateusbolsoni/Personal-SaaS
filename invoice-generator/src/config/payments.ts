@@ -1,12 +1,3 @@
-import type { PaymentType } from '../types/settings';
-
-export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
-  bank_transfer: 'Bank Transfer',
-  pix: 'PIX',
-  paypal: 'PayPal',
-  wise: 'Wise',
-  crypto: 'Cryptocurrency',
-  other: 'Other',
-};
-
-export const PAYMENT_TYPES = Object.keys(PAYMENT_TYPE_LABELS) as PaymentType[];
+// Re-export from types for backwards compatibility
+export { PAYMENT_TYPE_LABELS, PAYMENT_TYPE_ICONS, getPaymentMethodSummary } from '../types/payment';
+export type { PaymentType, PaymentMethod } from '../types/payment';

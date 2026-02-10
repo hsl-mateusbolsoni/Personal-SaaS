@@ -114,8 +114,7 @@ export const InvoicePreviewPage = () => {
         <InvoiceCanvas
           invoice={invoice}
           businessId={settings.businessId}
-          paymentType={settings.paymentType}
-          bankDetails={settings.bankDetails}
+          paymentMethod={settings.paymentMethods.find((m) => m.isDefault)}
         />
       </Box>
 

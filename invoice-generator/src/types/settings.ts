@@ -1,15 +1,10 @@
 import type { CurrencyCode } from './currency';
+import type { PaymentMethod } from './payment';
 
-export type PaymentType = 'bank_transfer' | 'pix' | 'paypal' | 'wise' | 'crypto' | 'other';
+// Re-export for backwards compatibility
+export type { PaymentType, BankTransferDetails as BankDetails } from './payment';
 
-export interface BankDetails {
-  bankName: string;
-  accountName: string;
-  accountNumber: string;
-  routingNumber: string;
-  swiftBic: string;
-  iban: string;
-}
+export type DateFormat = 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
 
 export interface CompanySettings {
   userId?: string;
@@ -18,11 +13,19 @@ export interface CompanySettings {
   phone: string;
   address: string;
   businessId: string;
-  paymentType: PaymentType;
-  bankDetails: BankDetails;
+  paymentMethods: PaymentMethod[];
+  lastUsedClientId?: string;
+}
+
+export interface AppSettings {
+  // Preferences
+  dateFormat: DateFormat;
+  weekStartsOn: 'sunday' | 'monday';
+  autoSave: boolean;
+  showDueDateWarnings: boolean;
+  // Invoice defaults
   defaultTaxRate: number;
   defaultCurrency: CurrencyCode;
   invoiceNumberPrefix: string;
   nextInvoiceNumber: number;
-  lastUsedClientId?: string;
 }

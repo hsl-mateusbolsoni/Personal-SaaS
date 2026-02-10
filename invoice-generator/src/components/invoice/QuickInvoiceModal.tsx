@@ -29,6 +29,7 @@ interface Props {
 export const QuickInvoiceModal = ({ isOpen, onClose }: Props) => {
   const { create } = useInvoiceActions();
   const settings = useSettingsStore((s) => s.settings);
+  const appSettings = useSettingsStore((s) => s.appSettings);
   const setLastUsedClient = useSettingsStore((s) => s.setLastUsedClient);
 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -48,10 +49,10 @@ export const QuickInvoiceModal = ({ isOpen, onClose }: Props) => {
     setIsSubmitting(true);
     try {
       await create({
-        invoiceNumber: `${settings.invoiceNumberPrefix}${settings.nextInvoiceNumber.toString().padStart(3, '0')}`,
+        invoiceNumber: `${appSettings.invoiceNumberPrefix}${appSettings.nextInvoiceNumber.toString().padStart(3, '0')}`,
         date: todayISO(),
         dueDate: futureDateISO(30),
-        currency: settings.defaultCurrency,
+        currency: appSettings.defaultCurrency,
         from: {
           name: settings.name,
           email: settings.email,
@@ -74,12 +75,12 @@ export const QuickInvoiceModal = ({ isOpen, onClose }: Props) => {
             amountCents: amountCents,
           },
         ],
-        taxRate: settings.defaultTaxRate,
+        taxRate: appSettings.defaultTaxRate,
         discount: null,
         subtotalCents: amountCents,
         discountAmountCents: 0,
-        taxAmountCents: Math.round(amountCents * (settings.defaultTaxRate / 100)),
-        totalCents: amountCents + Math.round(amountCents * (settings.defaultTaxRate / 100)),
+        taxAmountCents: Math.round(amountCents * (appSettings.defaultTaxRate / 100)),
+        totalCents: amountCents + Math.round(amountCents * (appSettings.defaultTaxRate / 100)),
       });
       handleClose();
     } finally {
@@ -117,12 +118,12 @@ export const QuickInvoiceModal = ({ isOpen, onClose }: Props) => {
               <FormLabel fontSize="sm" fontWeight="500">Invoice Amount</FormLabel>
               <CurrencyInput
                 value={amountCents}
-                currency={settings.defaultCurrency}
+                currency={appSettings.defaultCurrency}
                 onChange={setAmountCents}
               />
-              {settings.defaultTaxRate > 0 && amountCents > 0 && (
+              {appSettings.defaultTaxRate > 0 && amountCents > 0 && (
                 <Text fontSize="xs" color="brand.400" mt={1}>
-                  + {settings.defaultTaxRate}% tax will be applied
+                  + {appSettings.defaultTaxRate}% tax will be applied
                 </Text>
               )}
             </FormControl>
