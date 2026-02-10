@@ -28,18 +28,19 @@ export const ClientList = ({
             key={client.id}
             align="center"
             justify="space-between"
-            py={3}
-            px={4}
+            py={4}
+            px={6}
             borderBottom="1px solid"
-            borderColor="gray.100"
-            _hover={{ bg: 'gray.50' }}
+            borderColor="brand.100"
+            _hover={{ bg: 'brand.50' }}
+            _last={{ borderBottom: 'none' }}
           >
             <Box>
-              <Text fontSize="sm" fontWeight="600">{client.name}</Text>
-              <Text fontSize="xs" color="gray.500">{client.email}</Text>
+              <Text fontSize="sm" fontWeight="600" color="brand.800">{client.name}</Text>
+              <Text fontSize="sm" color="brand.500">{client.email}</Text>
             </Box>
-            <Flex align="center" gap={2}>
-              <Text fontSize="xs" color="gray.400">
+            <Flex align="center" gap={3}>
+              <Text fontSize="sm" color="brand.400">
                 {formatDate(client.createdAt)}
               </Text>
               <IconButton

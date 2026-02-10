@@ -1,107 +1,277 @@
-import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, pdf } from '@react-pdf/renderer';
 import type { Invoice } from '../../types/invoice';
+import type { BankDetails, PaymentType } from '../../types/settings';
 import { formatCurrency } from '../../utils/currency';
+import { PAYMENT_TYPE_LABELS } from '../../config/payments';
 
+Font.register({
+  family: 'Manrope',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggexSg.ttf', fontWeight: 400 },
+    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggOxSuXd.ttf', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggCxSuXd.ttf', fontWeight: 700 },
+  ],
+});
+
+// Spacing: 4, 8, 16, 24 (consistent scale)
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 10, fontFamily: 'Helvetica' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
-  companyName: { fontSize: 16, fontWeight: 'bold', marginBottom: 5 },
-  invoiceNumber: { fontSize: 16, fontWeight: 'bold', marginBottom: 5 },
-  invoiceDetails: { textAlign: 'right' },
-  billTo: { marginBottom: 30 },
-  billToLabel: { fontSize: 10, fontWeight: 'bold', marginBottom: 5 },
-  table: { marginBottom: 20 },
-  tableHeader: {
-    flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#000',
-    paddingBottom: 5, marginBottom: 10, fontWeight: 'bold',
+  page: {
+    padding: 40,
+    fontFamily: 'Manrope',
+    color: '#333',
+    display: 'flex',
+    flexDirection: 'column',
   },
-  tableRow: { flexDirection: 'row', marginBottom: 5 },
+  topSection: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  textL: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: '#111',
+  },
+  textM: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#111',
+  },
+  label: {
+    fontSize: 8,
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 4,
+  },
+  text: {
+    fontSize: 8,
+    color: '#555',
+    marginTop: 2,
+  },
+  textMuted: {
+    fontSize: 8,
+    color: '#888',
+    marginTop: 2,
+  },
+  invoiceDetails: {
+    textAlign: 'right',
+  },
+  section: {
+    marginBottom: 16,
+  },
+  table: {
+    marginBottom: 16,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    paddingBottom: 6,
+    marginBottom: 4,
+  },
+  tableHeaderText: {
+    fontSize: 8,
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
   col1: { flex: 3 },
   col2: { flex: 1, textAlign: 'right' },
   col3: { flex: 1, textAlign: 'right' },
   col4: { flex: 1, textAlign: 'right' },
-  totals: { marginLeft: 'auto', width: 200 },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  totalsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  totals: {
+    width: 160,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 3,
+  },
+  discountText: {
+    fontSize: 8,
+    color: '#16a34a',
+  },
   grandTotal: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    borderTopWidth: 1, borderTopColor: '#000', paddingTop: 5, marginTop: 5,
-    fontWeight: 'bold', fontSize: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+    paddingTop: 6,
+    marginTop: 4,
+  },
+  notes: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
   },
 });
 
-export const InvoicePDF = ({ invoice }: { invoice: Invoice }) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      <View style={styles.header}>
+interface InvoicePDFProps {
+  invoice: Invoice;
+  businessId?: string;
+  paymentType?: PaymentType;
+  bankDetails?: BankDetails;
+}
+
+export const InvoicePDF = ({ invoice, businessId, paymentType, bankDetails }: InvoicePDFProps) => {
+  const hasBankDetails = bankDetails && (
+    bankDetails.bankName ||
+    bankDetails.accountNumber ||
+    bankDetails.iban
+  );
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* TOP SECTION */}
+        <View style={styles.topSection}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.textL}>{invoice.from.name}</Text>
+              {businessId && (
+                <Text style={styles.textMuted}>{businessId}</Text>
+              )}
+              <Text style={[styles.text, { marginTop: 8 }]}>{invoice.from.email}</Text>
+              <Text style={styles.text}>{invoice.from.phone}</Text>
+              <Text style={styles.text}>{invoice.from.address}</Text>
+            </View>
+            <View style={styles.invoiceDetails}>
+              <Text style={styles.textL}>{invoice.invoiceNumber}</Text>
+              <Text style={[styles.text, { marginTop: 8 }]}>Issued {invoice.date}</Text>
+              <Text style={styles.text}>Due {invoice.dueDate}</Text>
+            </View>
+          </View>
+
+          {/* Bill To */}
+          <View style={styles.section}>
+            <Text style={styles.label}>Bill To</Text>
+            <Text style={styles.textM}>{invoice.to.name}</Text>
+            <Text style={styles.text}>{invoice.to.email}</Text>
+            <Text style={styles.text}>{invoice.to.phone}</Text>
+            <Text style={styles.text}>{invoice.to.address}</Text>
+          </View>
+
+          {/* Payment Details */}
+          {hasBankDetails && (
+            <View style={styles.section}>
+              <Text style={styles.label}>
+                Payment{paymentType ? ` — ${PAYMENT_TYPE_LABELS[paymentType]}` : ''}
+              </Text>
+              {bankDetails?.bankName && <Text style={styles.text}>{bankDetails.bankName}</Text>}
+              {bankDetails?.accountName && <Text style={styles.text}>{bankDetails.accountName}</Text>}
+              {bankDetails?.accountNumber && <Text style={styles.text}>Account: {bankDetails.accountNumber}</Text>}
+              {bankDetails?.routingNumber && <Text style={styles.text}>Routing: {bankDetails.routingNumber}</Text>}
+              {bankDetails?.iban && <Text style={styles.text}>IBAN: {bankDetails.iban}</Text>}
+              {bankDetails?.swiftBic && <Text style={styles.text}>SWIFT: {bankDetails.swiftBic}</Text>}
+            </View>
+          )}
+        </View>
+
+        {/* BOTTOM SECTION */}
         <View>
-          <Text style={styles.companyName}>{invoice.from.name}</Text>
-          <Text>{invoice.from.email}</Text>
-          <Text>{invoice.from.phone}</Text>
-          <Text>{invoice.from.address}</Text>
-        </View>
-        <View style={styles.invoiceDetails}>
-          <Text style={styles.invoiceNumber}>Invoice {invoice.invoiceNumber}</Text>
-          <Text>Date: {invoice.date}</Text>
-          <Text>Due Date: {invoice.dueDate}</Text>
-          <Text>Status: {invoice.status}</Text>
-        </View>
-      </View>
-
-      <View style={styles.billTo}>
-        <Text style={styles.billToLabel}>Bill To:</Text>
-        <Text>{invoice.to.name}</Text>
-        <Text>{invoice.to.email}</Text>
-        <Text>{invoice.to.phone}</Text>
-        <Text>{invoice.to.address}</Text>
-      </View>
-
-      <View style={styles.table}>
-        <View style={styles.tableHeader}>
-          <Text style={styles.col1}>Description</Text>
-          <Text style={styles.col2}>Qty</Text>
-          <Text style={styles.col3}>Rate</Text>
-          <Text style={styles.col4}>Amount</Text>
-        </View>
-        {invoice.items.map((item) => (
-          <View key={item.id} style={styles.tableRow}>
-            <Text style={styles.col1}>{item.description}</Text>
-            <Text style={styles.col2}>{item.quantity}</Text>
-            <Text style={styles.col3}>{formatCurrency(item.rateCents, invoice.currency)}</Text>
-            <Text style={styles.col4}>{formatCurrency(item.amountCents, invoice.currency)}</Text>
+          {/* Line Items */}
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderText, styles.col1]}>Description</Text>
+              <Text style={[styles.tableHeaderText, styles.col2]}>Qty</Text>
+              <Text style={[styles.tableHeaderText, styles.col3]}>Rate</Text>
+              <Text style={[styles.tableHeaderText, styles.col4]}>Amount</Text>
+            </View>
+            {invoice.items.map((item) => (
+              <View key={item.id} style={styles.tableRow}>
+                <Text style={[{ fontSize: 8, color: '#333' }, styles.col1]}>{item.description}</Text>
+                <Text style={[{ fontSize: 8, color: '#333' }, styles.col2]}>{item.quantity}</Text>
+                <Text style={[{ fontSize: 8, color: '#333' }, styles.col3]}>{formatCurrency(item.rateCents, invoice.currency)}</Text>
+                <Text style={[{ fontSize: 8, color: '#333' }, styles.col4]}>{formatCurrency(item.amountCents, invoice.currency)}</Text>
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
 
-      <View style={styles.totals}>
-        <View style={styles.totalRow}>
-          <Text>Subtotal:</Text>
-          <Text>{formatCurrency(invoice.subtotalCents, invoice.currency)}</Text>
-        </View>
-        {invoice.discount && invoice.discountAmountCents > 0 && (
-          <View style={styles.totalRow}>
-            <Text>Discount ({invoice.discount.type === 'percentage' ? `${invoice.discount.value}%` : 'Fixed'}):</Text>
-            <Text>-{formatCurrency(invoice.discountAmountCents, invoice.currency)}</Text>
+          {/* Totals */}
+          <View style={styles.totalsContainer}>
+            <View style={styles.totals}>
+              <View style={styles.totalRow}>
+                <Text style={{ fontSize: 8, color: '#555' }}>Subtotal</Text>
+                <Text style={{ fontSize: 8, color: '#555' }}>{formatCurrency(invoice.subtotalCents, invoice.currency)}</Text>
+              </View>
+              {invoice.discount && invoice.discountAmountCents > 0 && (
+                <View style={styles.totalRow}>
+                  <Text style={styles.discountText}>
+                    Discount{invoice.discount.type === 'percentage' ? ` ${invoice.discount.value}%` : ''}
+                  </Text>
+                  <Text style={styles.discountText}>-{formatCurrency(invoice.discountAmountCents, invoice.currency)}</Text>
+                </View>
+              )}
+              {invoice.taxRate > 0 && (
+                <View style={styles.totalRow}>
+                  <Text style={{ fontSize: 8, color: '#555' }}>Tax {invoice.taxRate}%</Text>
+                  <Text style={{ fontSize: 8, color: '#555' }}>{formatCurrency(invoice.taxAmountCents, invoice.currency)}</Text>
+                </View>
+              )}
+              <View style={styles.grandTotal}>
+                <Text style={styles.textM}>Total</Text>
+                <Text style={styles.textM}>{formatCurrency(invoice.totalCents, invoice.currency)}</Text>
+              </View>
+            </View>
           </View>
-        )}
-        <View style={styles.totalRow}>
-          <Text>Tax ({invoice.taxRate}%):</Text>
-          <Text>{formatCurrency(invoice.taxAmountCents, invoice.currency)}</Text>
+
+          {/* Notes */}
+          {invoice.metadata?.notes && (
+            <View style={styles.notes}>
+              <Text style={styles.label}>Notes</Text>
+              <Text style={{ fontSize: 8, color: '#555' }}>{invoice.metadata.notes}</Text>
+            </View>
+          )}
         </View>
-        <View style={styles.grandTotal}>
-          <Text>TOTAL:</Text>
-          <Text>{formatCurrency(invoice.totalCents, invoice.currency)}</Text>
-        </View>
-      </View>
-    </Page>
-  </Document>
-);
+      </Page>
+    </Document>
+  );
+};
+
+const getSettingsForPDF = () => {
+  try {
+    const stored = localStorage.getItem('invoice-generator-v1:settings');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return {
+        businessId: parsed.state?.settings?.businessId || '',
+        paymentType: parsed.state?.settings?.paymentType || 'bank_transfer',
+        bankDetails: parsed.state?.settings?.bankDetails || null,
+      };
+    }
+  } catch (e) {
+    console.error('Failed to get settings for PDF:', e);
+  }
+  return { businessId: '', paymentType: 'bank_transfer' as PaymentType, bankDetails: null };
+};
 
 export const downloadInvoicePDF = async (invoice: Invoice) => {
-  const blob = await pdf(<InvoicePDF invoice={invoice} />).toBlob();
+  const { businessId, paymentType, bankDetails } = getSettingsForPDF();
+  const blob = await pdf(
+    <InvoicePDF invoice={invoice} businessId={businessId} paymentType={paymentType} bankDetails={bankDetails} />
+  ).toBlob();
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
   link.download = `Invoice-${invoice.invoiceNumber}.pdf`;
+  document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
