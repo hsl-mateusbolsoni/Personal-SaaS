@@ -1,5 +1,5 @@
-import { VStack, Input, Textarea, Button, FormControl, FormLabel, FormErrorMessage } from '@chakra-ui/react';
-import { useState } from 'react';
+import { VStack, Flex, Input, Textarea, Button, FormControl, FormLabel, FormErrorMessage } from '@chakra-ui/react';
+import { useState, useEffect } from 'react';
 import type { Client } from '../../types/client';
 
 interface ClientFormProps {
@@ -14,6 +14,14 @@ export const ClientForm = ({ initial, onSubmit, onCancel }: ClientFormProps) => 
   const [phone, setPhone] = useState(initial?.phone || '');
   const [address, setAddress] = useState(initial?.address || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setName(initial?.name || '');
+    setEmail(initial?.email || '');
+    setPhone(initial?.phone || '');
+    setAddress(initial?.address || '');
+    setErrors({});
+  }, [initial]);
 
   const handleSubmit = () => {
     const newErrors: Record<string, string> = {};
@@ -59,5 +67,3 @@ export const ClientForm = ({ initial, onSubmit, onCancel }: ClientFormProps) => 
     </VStack>
   );
 };
-
-import { Flex } from '@chakra-ui/react';

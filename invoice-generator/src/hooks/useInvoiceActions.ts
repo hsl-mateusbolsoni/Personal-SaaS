@@ -1,59 +1,81 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@chakra-ui/react';
 import { invoiceService } from '../services';
 import { useInvoiceStore } from '../stores/useInvoiceStore';
+import { useActivityStore } from '../stores/useActivityStore';
+import { toast } from '../utils/toast';
 import type { Invoice } from '../types/invoice';
 import { ROUTES } from '../config/routes';
 
 export const useInvoiceActions = () => {
   const navigate = useNavigate();
-  const toast = useToast();
   const deleteInvoice = useInvoiceStore((s) => s.deleteInvoice);
+  const addActivity = useActivityStore((s) => s.addActivity);
+  const deleteActivities = useActivityStore((s) => s.deleteActivitiesForInvoice);
 
   const create = useCallback(
     async (draft: Partial<Invoice>) => {
       const invoice = await invoiceService.createInvoice(draft);
-      toast({ title: 'Invoice created', status: 'success', duration: 2000, isClosable: true, position: 'top-right' });
+      addActivity(invoice.id, 'created', `Invoice ${invoice.invoiceNumber} created`);
+      toast.success({ title: 'Invoice created' });
       navigate(ROUTES.INVOICE_PREVIEW(invoice.id));
       return invoice;
     },
-    [navigate, toast]
+    [navigate, addActivity]
   );
 
   const duplicate = useCallback(
-    async (id: string) => {
+    async (id: string, originalNumber: string) => {
       const invoice = await invoiceService.duplicateInvoice(id);
-      toast({ title: 'Invoice duplicated', status: 'success', duration: 2000, isClosable: true, position: 'top-right' });
+      addActivity(id, 'duplicated', `Duplicated to ${invoice.invoiceNumber}`);
+      addActivity(invoice.id, 'created', `Duplicated from ${originalNumber}`);
+      toast.success({ title: 'Invoice duplicated' });
       navigate(ROUTES.INVOICE_EDIT(invoice.id));
       return invoice;
     },
-    [navigate, toast]
+    [navigate, addActivity]
   );
 
   const markPaid = useCallback(
     async (id: string) => {
       await invoiceService.markAsPaid(id);
-      toast({ title: 'Invoice marked as paid', status: 'success', duration: 2000, isClosable: true, position: 'top-right' });
+      addActivity(id, 'paid');
+      toast.success({ title: 'Invoice marked as paid' });
     },
-    [toast]
+    [addActivity]
   );
 
   const markSent = useCallback(
     async (id: string) => {
       await invoiceService.markAsSent(id);
-      toast({ title: 'Invoice marked as sent', status: 'info', duration: 2000, isClosable: true, position: 'top-right' });
+      addActivity(id, 'sent');
+      toast.info({ title: 'Invoice marked as sent' });
     },
-    [toast]
+    [addActivity]
   );
 
   const remove = useCallback(
     (id: string) => {
+      deleteActivities(id);
       deleteInvoice(id);
-      toast({ title: 'Invoice deleted', status: 'info', duration: 2000, isClosable: true, position: 'top-right' });
+      toast.info({ title: 'Invoice deleted' });
     },
-    [deleteInvoice, toast]
+    [deleteInvoice, deleteActivities]
   );
 
-  return { create, duplicate, markPaid, markSent, remove };
+  const logDownload = useCallback(
+    (id: string) => {
+      addActivity(id, 'downloaded');
+    },
+    [addActivity]
+  );
+
+  const logView = useCallback(
+    (id: string) => {
+      addActivity(id, 'viewed');
+    },
+    [addActivity]
+  );
+
+  return { create, duplicate, markPaid, markSent, remove, logDownload, logView };
 };

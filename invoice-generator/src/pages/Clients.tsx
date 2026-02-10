@@ -1,27 +1,27 @@
-import { Box, Flex, Text, Button, useDisclosure } from '@chakra-ui/react';
+import { Box, Button, useDisclosure } from '@chakra-ui/react';
 import { Plus } from 'phosphor-react';
 import { useState } from 'react';
 import { Container } from '../components/layout/Container';
+import { PageHeader } from '../components/layout/PageHeader';
 import { ClientList } from '../components/client/ClientList';
-import { ClientForm } from '../components/client/ClientForm';
+import { ClientDrawer } from '../components/client/ClientDrawer';
 import { useClientStore } from '../stores/useClientStore';
 import { clientService } from '../services';
-import { useToast } from '@chakra-ui/react';
+import { toast } from '../utils/toast';
 
 export const Clients = () => {
-  const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [editId, setEditId] = useState<string | null>(null);
   const clients = useClientStore((s) => s.clients);
-  const editClient = clients.find((c) => c.id === editId);
+  const editClient = clients.find((c) => c.id === editId) || null;
 
   const handleSubmit = async (data: { name: string; email: string; phone: string; address: string }) => {
     if (editId) {
       await clientService.updateClient(editId, data);
-      toast({ title: 'Client updated', status: 'success', duration: 2000, isClosable: true, position: 'top-right' });
+      toast.success({ title: 'Client updated' });
     } else {
       await clientService.createClient(data);
-      toast({ title: 'Client added', status: 'success', duration: 2000, isClosable: true, position: 'top-right' });
+      toast.success({ title: 'Client added' });
     }
     setEditId(null);
     onClose();
@@ -32,29 +32,33 @@ export const Clients = () => {
     onOpen();
   };
 
+  const handleClose = () => {
+    setEditId(null);
+    onClose();
+  };
+
   return (
     <Container>
-      <Flex justify="space-between" align="center" mb={6}>
-        <Text fontSize="md" fontWeight="700">Clients</Text>
-        <Button size="sm" leftIcon={<Plus size={14} />} onClick={() => { setEditId(null); onOpen(); }}>
-          Add Client
-        </Button>
-      </Flex>
+      <PageHeader
+        title="Clients"
+        subtitle="Manage your client contacts"
+        actions={
+          <Button size="sm" leftIcon={<Plus size={14} weight="bold" />} onClick={() => { setEditId(null); onOpen(); }}>
+            Add Client
+          </Button>
+        }
+      />
 
-      {isOpen && (
-        <Box bg="white" p={6} borderRadius="md" border="1px solid" borderColor="gray.200" mb={6}>
-          <Text fontSize="sm" fontWeight="600" mb={4}>{editId ? 'Edit' : 'New'} Client</Text>
-          <ClientForm
-            initial={editClient}
-            onSubmit={handleSubmit}
-            onCancel={() => { setEditId(null); onClose(); }}
-          />
-        </Box>
-      )}
-
-      <Box bg="white" borderRadius="md" border="1px solid" borderColor="gray.200">
+      <Box bg="white" borderRadius="xl" shadow="sm" border="1px solid" borderColor="brand.100" overflow="hidden">
         <ClientList onEdit={handleEdit} />
       </Box>
+
+      <ClientDrawer
+        isOpen={isOpen}
+        onClose={handleClose}
+        client={editClient}
+        onSubmit={handleSubmit}
+      />
     </Container>
   );
 };

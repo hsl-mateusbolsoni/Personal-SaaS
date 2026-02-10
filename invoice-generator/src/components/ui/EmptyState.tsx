@@ -1,4 +1,5 @@
-import { Flex, Text, Button } from '@chakra-ui/react';
+import { Flex, Text, Button, useToken } from '@chakra-ui/react';
+import { FileText } from 'phosphor-react';
 
 export const EmptyState = ({
   title,
@@ -10,18 +11,23 @@ export const EmptyState = ({
   description: string;
   actionLabel?: string;
   onAction?: () => void;
-}) => (
-  <Flex direction="column" align="center" justify="center" py={16} gap={3}>
-    <Text fontSize="md" fontWeight="600" color="gray.700">
+}) => {
+  const [iconColor] = useToken('colors', ['brand.300']);
+
+  return (
+  <Flex direction="column" align="center" justify="center" py={16} px={8} gap={4}>
+    <FileText size={48} weight="duotone" color={iconColor} />
+    <Text fontSize="md" fontWeight="600" color="brand.700">
       {title}
     </Text>
-    <Text fontSize="sm" color="gray.500" textAlign="center" maxW="sm">
+    <Text fontSize="sm" color="brand.400" textAlign="center" maxW="sm">
       {description}
     </Text>
     {actionLabel && onAction && (
-      <Button size="sm" mt={2} onClick={onAction}>
+      <Button mt={2} onClick={onAction}>
         {actionLabel}
       </Button>
     )}
   </Flex>
-);
+  );
+};
