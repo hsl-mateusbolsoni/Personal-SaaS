@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Receipt, FileText, Users, Buildings, Gear } from 'phosphor-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../config/routes';
+import { SyncStatusIndicator } from '../ui/SyncStatusIndicator';
 
 const MAIN_NAV = [
   { label: 'Invoices', path: ROUTES.DASHBOARD, icon: FileText },
@@ -90,6 +91,11 @@ export const Sidebar = () => {
         </Text>
         {SETTINGS_NAV.map(renderNavItem)}
       </VStack>
+
+      {/* Sync Status */}
+      <Box px={1} mb={2}>
+        <SyncStatusIndicator />
+      </Box>
 
       {/* User Profile at bottom */}
       {user && (

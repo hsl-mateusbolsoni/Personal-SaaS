@@ -5,11 +5,15 @@ import {
   Text,
   FormControl,
   FormLabel,
+  FormErrorMessage,
   Input,
   Textarea,
   Button,
   Divider,
   useDisclosure,
+  Alert,
+  AlertIcon,
+  AlertDescription,
 } from '@chakra-ui/react';
 import { Plus } from 'phosphor-react';
 import { useState, useCallback, useEffect } from 'react';
@@ -20,6 +24,7 @@ import { ClientSelector } from '../../client/ClientSelector';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { calculateInvoiceTotals, formatCurrency } from '../../../utils/currency';
 import { todayISO, futureDateISO } from '../../../utils/formatting';
+import { validateInvoiceDraft, type ValidationErrors, getFieldError, hasErrors, getErrorMessages } from '../../../utils/validation';
 import type { Invoice, CompanyInfo, ClientInfo, LineItem } from '../../../types/invoice';
 import type { CurrencyCode } from '../../../types/currency';
 import type { Client } from '../../../types/client';
@@ -63,6 +68,8 @@ export const MobileInvoiceForm = ({
   const { isOpen: isLineItemOpen, onOpen: openLineItem, onClose: closeLineItem } = useDisclosure();
   const [editingItem, setEditingItem] = useState<LineItem | null>(null);
   const [isNewItem, setIsNewItem] = useState(false);
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [showErrors, setShowErrors] = useState(false);
 
   const [invoiceNumber, setInvoiceNumber] = useState(
     initial?.invoiceNumber || `${appSettings.invoiceNumberPrefix}${appSettings.nextInvoiceNumber.toString().padStart(3, '0')}`
@@ -147,12 +154,36 @@ export const MobileInvoiceForm = ({
   }), [invoiceNumber, date, dueDate, currency, from, to, items, taxRate, discount, notes, totals, initial?.id]);
 
   const handleSubmit = () => {
-    onSubmit(getDraft());
+    const draft = getDraft();
+    const result = validateInvoiceDraft(draft);
+
+    if (!result.success) {
+      setErrors(result.errors);
+      setShowErrors(true);
+      // Scroll to top to show error alert
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setErrors({});
+    setShowErrors(false);
+    onSubmit(draft);
   };
 
   return (
     <>
       <VStack spacing={4} align="stretch" pb={24}>
+        {/* Validation Errors Alert */}
+        {showErrors && hasErrors(errors) && (
+          <Alert status="error" borderRadius="lg">
+            <AlertIcon />
+            <AlertDescription fontSize="sm">
+              Please fix the following errors: {getErrorMessages(errors).slice(0, 3).join(', ')}
+              {getErrorMessages(errors).length > 3 && ` and ${getErrorMessages(errors).length - 3} more`}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Invoice Settings */}
         <MobileInvoiceSettings
           currency={currency}
@@ -171,16 +202,17 @@ export const MobileInvoiceForm = ({
         <Box bg="white" borderRadius="lg" border="1px solid" borderColor="brand.100" p={4}>
           <Text fontWeight="600" fontSize="sm" mb={4}>Invoice Details</Text>
           <VStack spacing={3} align="stretch">
-            <FormControl>
+            <FormControl isInvalid={!!getFieldError(errors, 'invoiceNumber')}>
               <FormLabel fontSize="sm">Invoice Number</FormLabel>
               <Input
                 size="sm"
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
               />
+              <FormErrorMessage fontSize="xs">{getFieldError(errors, 'invoiceNumber')}</FormErrorMessage>
             </FormControl>
             <HStack spacing={3}>
-              <FormControl flex={1}>
+              <FormControl flex={1} isInvalid={!!getFieldError(errors, 'date')}>
                 <FormLabel fontSize="sm">Date</FormLabel>
                 <Input
                   type="date"
@@ -188,8 +220,9 @@ export const MobileInvoiceForm = ({
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                 />
+                <FormErrorMessage fontSize="xs">{getFieldError(errors, 'date')}</FormErrorMessage>
               </FormControl>
-              <FormControl flex={1}>
+              <FormControl flex={1} isInvalid={!!getFieldError(errors, 'dueDate')}>
                 <FormLabel fontSize="sm">Due Date</FormLabel>
                 <Input
                   type="date"
@@ -197,6 +230,7 @@ export const MobileInvoiceForm = ({
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                 />
+                <FormErrorMessage fontSize="xs">{getFieldError(errors, 'dueDate')}</FormErrorMessage>
               </FormControl>
             </HStack>
           </VStack>
@@ -206,28 +240,32 @@ export const MobileInvoiceForm = ({
         <Box bg="white" borderRadius="lg" border="1px solid" borderColor="brand.100" p={4}>
           <Text fontWeight="600" fontSize="sm" mb={4}>From</Text>
           <VStack spacing={3} align="stretch">
-            <FormControl>
+            <FormControl isInvalid={!!getFieldError(errors, 'from.name')}>
               <FormLabel fontSize="sm">Business Name</FormLabel>
               <Input
                 size="sm"
                 value={from.name}
                 onChange={(e) => setFrom({ ...from, name: e.target.value })}
               />
+              <FormErrorMessage fontSize="xs">{getFieldError(errors, 'from.name')}</FormErrorMessage>
             </FormControl>
-            <FormControl>
+            <FormControl isInvalid={!!getFieldError(errors, 'from.email')}>
               <FormLabel fontSize="sm">Email</FormLabel>
               <Input
                 type="email"
                 size="sm"
+                inputMode="email"
                 value={from.email}
                 onChange={(e) => setFrom({ ...from, email: e.target.value })}
               />
+              <FormErrorMessage fontSize="xs">{getFieldError(errors, 'from.email')}</FormErrorMessage>
             </FormControl>
             <FormControl>
               <FormLabel fontSize="sm">Phone</FormLabel>
               <Input
                 type="tel"
                 size="sm"
+                inputMode="tel"
                 value={from.phone}
                 onChange={(e) => setFrom({ ...from, phone: e.target.value })}
               />
@@ -256,28 +294,32 @@ export const MobileInvoiceForm = ({
               />
             </FormControl>
             <Divider />
-            <FormControl>
+            <FormControl isInvalid={!!getFieldError(errors, 'to.name')}>
               <FormLabel fontSize="sm">Client Name</FormLabel>
               <Input
                 size="sm"
                 value={to.name}
                 onChange={(e) => setTo({ ...to, name: e.target.value })}
               />
+              <FormErrorMessage fontSize="xs">{getFieldError(errors, 'to.name')}</FormErrorMessage>
             </FormControl>
-            <FormControl>
+            <FormControl isInvalid={!!getFieldError(errors, 'to.email')}>
               <FormLabel fontSize="sm">Email</FormLabel>
               <Input
                 type="email"
                 size="sm"
+                inputMode="email"
                 value={to.email}
                 onChange={(e) => setTo({ ...to, email: e.target.value })}
               />
+              <FormErrorMessage fontSize="xs">{getFieldError(errors, 'to.email')}</FormErrorMessage>
             </FormControl>
             <FormControl>
               <FormLabel fontSize="sm">Phone</FormLabel>
               <Input
                 type="tel"
                 size="sm"
+                inputMode="tel"
                 value={to.phone}
                 onChange={(e) => setTo({ ...to, phone: e.target.value })}
               />
@@ -295,7 +337,7 @@ export const MobileInvoiceForm = ({
         </Box>
 
         {/* Line Items */}
-        <Box bg="white" borderRadius="lg" border="1px solid" borderColor="brand.100" p={4}>
+        <Box bg="white" borderRadius="lg" border="1px solid" borderColor={getFieldError(errors, 'items') ? 'danger.300' : 'brand.100'} p={4}>
           <HStack justify="space-between" mb={4}>
             <Text fontWeight="600" fontSize="sm">Line Items</Text>
             <Button
@@ -312,12 +354,14 @@ export const MobileInvoiceForm = ({
             <Box
               py={8}
               textAlign="center"
-              color="brand.400"
+              color={getFieldError(errors, 'items') ? 'danger.500' : 'brand.400'}
               borderRadius="lg"
               border="2px dashed"
-              borderColor="brand.200"
+              borderColor={getFieldError(errors, 'items') ? 'danger.300' : 'brand.200'}
             >
-              <Text fontSize="sm">No items yet. Tap "Add Item" to begin.</Text>
+              <Text fontSize="sm">
+                {getFieldError(errors, 'items') || 'No items yet. Tap "Add Item" to begin.'}
+              </Text>
             </Box>
           ) : (
             <VStack spacing={3} align="stretch">
