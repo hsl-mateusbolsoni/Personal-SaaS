@@ -1,9 +1,18 @@
-import { Box, Flex, Text, IconButton, useToken } from '@chakra-ui/react';
+import { Box, Flex, Text, IconButton } from '@chakra-ui/react';
 import { Plus, Trash } from 'phosphor-react';
 import { InlineText } from './InlineText';
 import { InlineCurrency } from './InlineCurrency';
 import type { LineItem } from '../../../types/invoice';
 import type { CurrencyCode } from '../../../types/currency';
+
+// Stripe-inspired color palette (matching EditorCanvas)
+const colors = {
+  text: '#1a1a1a',
+  textSecondary: '#6b7280',
+  border: '#e5e7eb',
+  borderLight: '#f3f4f6',
+  background: '#f9fafb',
+};
 
 interface InlineLineItemsProps {
   items: LineItem[];
@@ -18,7 +27,6 @@ export const InlineLineItems = ({
   onChange,
   onAddItem,
 }: InlineLineItemsProps) => {
-  const [textColor] = useToken('colors', ['brand.800']);
 
   const updateItem = (index: number, field: keyof LineItem, value: string | number) => {
     const newItems = [...items];
@@ -44,22 +52,24 @@ export const InlineLineItems = ({
   };
 
   return (
-    <Box mb={4}>
-      {/* Table Header */}
+    <Box>
+      {/* Table Header - matches PDF styling */}
       <Flex
-        borderBottom="1px solid"
-        borderColor="brand.200"
-        pb={2}
-        mb={2}
-        fontSize="8pt"
-        color="brand.400"
+        bg={colors.background}
+        py="10px"
+        px="12px"
+        borderRadius="4px"
+        mb="4px"
+        fontSize="9px"
+        fontWeight="500"
+        color={colors.textSecondary}
         textTransform="uppercase"
-        letterSpacing="0.05em"
+        letterSpacing="0.3px"
       >
-        <Text flex={3}>Description</Text>
+        <Text flex={4}>Description</Text>
         <Text flex={1} textAlign="right">Qty</Text>
-        <Text flex={1} textAlign="right">Rate</Text>
-        <Text flex={1} textAlign="right">Amount</Text>
+        <Text flex={1.5} textAlign="right">Unit Price</Text>
+        <Text flex={1.5} textAlign="right">Amount</Text>
         <Box w="24px" />
       </Flex>
 
@@ -68,21 +78,21 @@ export const InlineLineItems = ({
         <Flex
           key={item.id}
           align="center"
-          py={2}
-          fontSize="8pt"
-          color="brand.800"
+          py="12px"
+          px="12px"
+          fontSize="10px"
           borderBottom="1px solid"
-          borderColor="brand.100"
-          _hover={{ bg: 'brand.50' }}
+          borderColor={colors.borderLight}
+          _hover={{ bg: colors.background }}
           role="group"
         >
-          <Box flex={3} pr={2}>
+          <Box flex={4} pr={2}>
             <InlineText
               value={item.description}
               onChange={(v) => updateItem(index, 'description', v)}
               placeholder="Item description"
-              fontSize="8pt"
-              color={textColor}
+              fontSize="10px"
+              color={colors.text}
             />
           </Box>
           <Box flex={1}>
@@ -90,26 +100,28 @@ export const InlineLineItems = ({
               value={item.quantity.toString()}
               onChange={(v) => updateItem(index, 'quantity', v)}
               placeholder="1"
-              fontSize="8pt"
-              color={textColor}
+              fontSize="10px"
+              color={colors.textSecondary}
               textAlign="right"
             />
           </Box>
-          <Box flex={1}>
+          <Box flex={1.5}>
             <InlineCurrency
               value={item.rateCents}
               onChange={(v) => updateItem(index, 'rateCents', v)}
               currency={currency}
-              fontSize="8pt"
+              fontSize="10px"
+              color={colors.textSecondary}
               textAlign="right"
             />
           </Box>
-          <Box flex={1}>
+          <Box flex={1.5}>
             <InlineCurrency
               value={item.amountCents}
               onChange={() => {}}
               currency={currency}
-              fontSize="8pt"
+              fontSize="10px"
+              color={colors.text}
               textAlign="right"
               readOnly
             />
@@ -120,7 +132,7 @@ export const InlineLineItems = ({
               icon={<Trash size={12} />}
               size="xs"
               variant="ghost"
-              color="brand.400"
+              color={colors.textSecondary}
               opacity={0}
               _groupHover={{ opacity: 1 }}
               onClick={() => removeItem(index)}
@@ -139,7 +151,7 @@ export const InlineLineItems = ({
         mt={3}
         color="accent.500"
         cursor="pointer"
-        fontSize="8pt"
+        fontSize="9px"
         fontWeight="500"
         _hover={{ color: 'accent.600' }}
         onClick={onAddItem}

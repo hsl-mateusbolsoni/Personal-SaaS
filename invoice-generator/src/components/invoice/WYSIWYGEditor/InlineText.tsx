@@ -1,4 +1,5 @@
-import { Editable, EditableInput, EditablePreview, Input } from '@chakra-ui/react';
+import { useState } from 'react';
+import { Editable, EditableInput, EditablePreview, Input, Text, Box } from '@chakra-ui/react';
 
 interface InlineTextProps {
   value: string;
@@ -10,6 +11,7 @@ interface InlineTextProps {
   color?: string;
   width?: string;
   type?: 'text' | 'date';
+  displayValue?: string;
 }
 
 export const InlineText = ({
@@ -22,37 +24,55 @@ export const InlineText = ({
   color = '#000',
   width,
   type = 'text',
+  displayValue,
 }: InlineTextProps) => {
-  // For date inputs, use a regular input since Editable doesn't support type="date"
+  const [isEditingDate, setIsEditingDate] = useState(false);
+
+  // For date inputs, show displayValue when not editing, date picker when editing
   if (type === 'date') {
+    if (isEditingDate) {
+      return (
+        <Input
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={() => setIsEditingDate(false)}
+          autoFocus
+          variant="unstyled"
+          fontSize={fontSize}
+          fontWeight={fontWeight}
+          textAlign={textAlign}
+          color={color}
+          width={width || 'auto'}
+          height="auto"
+          minH="unset"
+          lineHeight="1.4"
+          p={0}
+          px={1}
+          borderRadius="sm"
+          bg="accent.50"
+        />
+      );
+    }
+
     return (
-      <Input
-        type="date"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        variant="unstyled"
+      <Text
         fontSize={fontSize}
         fontWeight={fontWeight}
         textAlign={textAlign}
-        color={color}
-        width={width || 'auto'}
-        height="auto"
-        minH="unset"
+        color={value ? color : 'brand.300'}
         lineHeight="1.4"
-        p={0}
-        borderRadius="sm"
         cursor="pointer"
+        borderRadius="sm"
+        onClick={() => setIsEditingDate(true)}
         _hover={{
           outline: '1px dashed',
           outlineColor: 'accent.300',
           outlineOffset: '2px',
         }}
-        _focus={{
-          bg: 'accent.50',
-          outline: 'none',
-          px: 1,
-        }}
-      />
+      >
+        {displayValue || value || placeholder}
+      </Text>
     );
   }
 

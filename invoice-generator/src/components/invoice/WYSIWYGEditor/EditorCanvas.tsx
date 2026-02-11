@@ -21,6 +21,19 @@ interface VisibilitySettings {
   showNotes: boolean;
 }
 
+// Stripe-inspired color palette
+const colors = {
+  primary: '#635bff',
+  text: '#1a1a1a',
+  textSecondary: '#6b7280',
+  textMuted: '#9ca3af',
+  border: '#e5e7eb',
+  borderLight: '#f3f4f6',
+  background: '#f9fafb',
+  success: '#10b981',
+  white: '#ffffff',
+};
+
 interface EditorCanvasProps {
   invoiceNumber: string;
   date: string;
@@ -82,7 +95,7 @@ export const EditorCanvas = ({
 }: EditorCanvasProps) => {
   const clients = useClientStore((s) => s.clients);
 
-  const hasPaymentDetails = paymentMethod && (
+  const hasPaymentDetails = visibility.showBankDetails && paymentMethod && (
     paymentMethod.bankTransfer?.bankName ||
     paymentMethod.bankTransfer?.accountNumber ||
     paymentMethod.pix?.pixKey ||
@@ -111,244 +124,314 @@ export const EditorCanvas = ({
     }
   };
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   return (
     <Box
-      bg="white"
+      bg={colors.white}
       w="595px"
       minH="842px"
-      p={10}
-      fontFamily="'Manrope', sans-serif"
-      color="#333"
+      p="48px"
+      fontFamily="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+      color={colors.text}
       shadow="xl"
       mx="auto"
-      display="flex"
-      flexDirection="column"
+      fontSize="10px"
     >
-      {/* TOP SECTION */}
-      <Box flex="1">
-        {/* Header: Company + Invoice Details */}
-        <Flex justify="space-between" mb={6}>
-          {/* Company Info */}
-          <Box>
-            <LogoUpload logo={logo} onChange={onChangeLogo} show={visibility.showLogo} />
-            <InlineText
-              value={from.name}
-              onChange={(v) => updateFrom('name', v)}
-              placeholder="Your Company"
-              fontSize="14pt"
-              fontWeight="700"
-              color="#111"
-            />
-            {visibility.showBusinessId && businessId && (
-              <Text fontSize="8pt" color="#888" mt="2px">{businessId}</Text>
-            )}
-            <Box mt={2}>
-              <InlineText
-                value={from.email}
-                onChange={(v) => updateFrom('email', v)}
-                placeholder="email@company.com"
-                fontSize="8pt"
-                color="#555"
-              />
-            </Box>
-            <InlineText
-              value={from.phone}
-              onChange={(v) => updateFrom('phone', v)}
-              placeholder="Phone"
-              fontSize="8pt"
-              color="#555"
-            />
-            <InlineTextArea
-              value={from.address}
-              onChange={(v) => updateFrom('address', v)}
-              placeholder="Address"
-              fontSize="8pt"
-              color="#555"
-              rows={2}
-            />
-          </Box>
-
-          {/* Invoice Details */}
-          <Box textAlign="right">
-            <InlineText
-              value={invoiceNumber}
-              onChange={onChangeInvoiceNumber}
-              placeholder="INV-001"
-              fontSize="14pt"
-              fontWeight="700"
-              color="#111"
-              textAlign="right"
-            />
-            <Flex justify="flex-end" align="center" mt={2}>
-              <Text fontSize="8pt" color="#555" mr={1}>Issued</Text>
-              <InlineText
-                value={date}
-                onChange={onChangeDate}
-                type="date"
-                fontSize="8pt"
-                color="#555"
-                textAlign="right"
-              />
-            </Flex>
-            <Flex justify="flex-end" align="center" mt="2px">
-              <Text fontSize="8pt" color="#555" mr={1}>Due</Text>
-              <InlineText
-                value={dueDate}
-                onChange={onChangeDueDate}
-                type="date"
-                fontSize="8pt"
-                color="#555"
-                textAlign="right"
-              />
-            </Flex>
-          </Box>
-        </Flex>
-
-        {/* Bill To */}
-        <Box mb={4}>
-          <Flex align="center" justify="space-between" mb={1}>
-            <Text fontSize="8pt" color="#888" textTransform="uppercase" letterSpacing="0.05em">
-              Bill To
-            </Text>
-            <Box w="140px">
-              <ClientCombobox
-                clients={clients}
-                onSelect={handleClientSelect}
-              />
-            </Box>
-          </Flex>
+      {/* Header */}
+      <Flex justify="space-between" align="flex-start" mb="40px">
+        <Box flex={1}>
+          <LogoUpload logo={logo} onChange={onChangeLogo} show={visibility.showLogo} />
           <InlineText
-            value={to.name}
-            onChange={(v) => updateTo('name', v)}
-            placeholder="Client Name"
-            fontSize="10pt"
-            fontWeight="600"
-            color="#111"
+            value={from.name}
+            onChange={(v) => updateFrom('name', v)}
+            placeholder="Your Company"
+            fontSize="20px"
+            fontWeight="700"
+            color={colors.text}
           />
-          <Box mt="2px">
+          {visibility.showBusinessId && businessId && (
+            <Text fontSize="9px" color={colors.textMuted} mt="4px" mb="8px">
+              {businessId}
+            </Text>
+          )}
+          <Box mt={2}>
             <InlineText
-              value={to.email}
-              onChange={(v) => updateTo('email', v)}
-              placeholder="client@email.com"
-              fontSize="8pt"
-              color="#555"
+              value={from.email}
+              onChange={(v) => updateFrom('email', v)}
+              placeholder="email@company.com"
+              fontSize="9px"
+              color={colors.textSecondary}
             />
           </Box>
           <InlineText
-            value={to.phone}
-            onChange={(v) => updateTo('phone', v)}
+            value={from.phone}
+            onChange={(v) => updateFrom('phone', v)}
             placeholder="Phone"
-            fontSize="8pt"
-            color="#555"
+            fontSize="9px"
+            color={colors.textSecondary}
           />
           <InlineTextArea
-            value={to.address}
-            onChange={(v) => updateTo('address', v)}
+            value={from.address}
+            onChange={(v) => updateFrom('address', v)}
             placeholder="Address"
-            fontSize="8pt"
-            color="#555"
+            fontSize="9px"
+            color={colors.textSecondary}
             rows={2}
           />
         </Box>
+        <Text
+          fontSize="32px"
+          fontWeight="300"
+          color={colors.textMuted}
+          letterSpacing="2px"
+        >
+          INVOICE
+        </Text>
+      </Flex>
 
-        {/* Payment Details */}
-        {visibility.showBankDetails && hasPaymentDetails && paymentMethod && (
-          <Box mb={4}>
-            <Text fontSize="8pt" color="#888" textTransform="uppercase" letterSpacing="0.05em" mb={1}>
-              Payment — {PAYMENT_TYPE_LABELS[paymentMethod.type]}
-            </Text>
-            <Box fontSize="8pt" color="#555">
-              <Text mt="2px">{getPaymentMethodSummary(paymentMethod)}</Text>
-              {paymentMethod.type === 'bank_transfer' && paymentMethod.bankTransfer && (
-                <>
-                  {paymentMethod.bankTransfer.accountName && <Text mt="2px">{paymentMethod.bankTransfer.accountName}</Text>}
-                  {paymentMethod.bankTransfer.accountNumber && <Text mt="2px">Account: {paymentMethod.bankTransfer.accountNumber}</Text>}
-                  {paymentMethod.bankTransfer.routingNumber && <Text mt="2px">Routing: {paymentMethod.bankTransfer.routingNumber}</Text>}
-                  {paymentMethod.bankTransfer.iban && <Text mt="2px">IBAN: {paymentMethod.bankTransfer.iban}</Text>}
-                  {paymentMethod.bankTransfer.swiftBic && <Text mt="2px">SWIFT: {paymentMethod.bankTransfer.swiftBic}</Text>}
-                </>
-              )}
-              {paymentMethod.type === 'pix' && paymentMethod.pix && (
-                <>
-                  <Text mt="2px">PIX: {paymentMethod.pix.pixKey}</Text>
-                  {paymentMethod.pix.recipientName && <Text mt="2px">{paymentMethod.pix.recipientName}</Text>}
-                </>
-              )}
-              {paymentMethod.type === 'crypto' && paymentMethod.crypto && (
-                <Text mt="2px">{paymentMethod.crypto.walletAddress}</Text>
-              )}
-              {paymentMethod.type === 'other' && paymentMethod.other?.instructions && (
-                <Text mt="2px" whiteSpace="pre-line">{paymentMethod.other.instructions}</Text>
-              )}
-            </Box>
-          </Box>
-        )}
+      {/* Invoice Meta Box */}
+      <Box
+        bg={colors.background}
+        borderRadius="6px"
+        p="16px"
+        mb="32px"
+      >
+        <Flex justify="space-between" mb="8px">
+          <Text fontSize="9px" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.5px">
+            Invoice Number
+          </Text>
+          <InlineText
+            value={invoiceNumber}
+            onChange={onChangeInvoiceNumber}
+            placeholder="INV-001"
+            fontSize="10px"
+            fontWeight="500"
+            color={colors.text}
+            textAlign="right"
+          />
+        </Flex>
+        <Flex justify="space-between" mb="8px">
+          <Text fontSize="9px" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.5px">
+            Issue Date
+          </Text>
+          <InlineText
+            value={date}
+            onChange={onChangeDate}
+            type="date"
+            fontSize="10px"
+            fontWeight="500"
+            color={colors.text}
+            textAlign="right"
+            displayValue={formatDate(date)}
+          />
+        </Flex>
+        <Flex justify="space-between" mb="8px">
+          <Text fontSize="9px" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.5px">
+            Due Date
+          </Text>
+          <InlineText
+            value={dueDate}
+            onChange={onChangeDueDate}
+            type="date"
+            fontSize="10px"
+            fontWeight="500"
+            color={colors.text}
+            textAlign="right"
+            displayValue={formatDate(dueDate)}
+          />
+        </Flex>
+        <Flex
+          justify="space-between"
+          pt="8px"
+          borderTop="1px solid"
+          borderColor={colors.border}
+        >
+          <Text fontSize="9px" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.5px">
+            Amount Due
+          </Text>
+          <Text fontSize="14px" fontWeight="700" color={colors.text}>
+            {formatCurrency(totalCents, currency)}
+          </Text>
+        </Flex>
       </Box>
 
-      {/* BOTTOM SECTION: Line Items + Totals */}
-      <Box>
-        {/* Line Items */}
+      {/* Bill To */}
+      <Box mb="32px">
+        <Flex align="center" justify="space-between" mb="8px">
+          <Text fontSize="9px" color={colors.textMuted} textTransform="uppercase" letterSpacing="0.5px">
+            Bill To
+          </Text>
+          <Box w="140px">
+            <ClientCombobox
+              clients={clients}
+              onSelect={handleClientSelect}
+            />
+          </Box>
+        </Flex>
+        <InlineText
+          value={to.name}
+          onChange={(v) => updateTo('name', v)}
+          placeholder="Client Name"
+          fontSize="11px"
+          fontWeight="500"
+          color={colors.text}
+        />
+        <Box mt="4px">
+          <InlineText
+            value={to.email}
+            onChange={(v) => updateTo('email', v)}
+            placeholder="client@email.com"
+            fontSize="9px"
+            color={colors.textSecondary}
+          />
+        </Box>
+        <InlineText
+          value={to.phone}
+          onChange={(v) => updateTo('phone', v)}
+          placeholder="Phone"
+          fontSize="9px"
+          color={colors.textSecondary}
+        />
+        <InlineTextArea
+          value={to.address}
+          onChange={(v) => updateTo('address', v)}
+          placeholder="Address"
+          fontSize="9px"
+          color={colors.textSecondary}
+          rows={2}
+        />
+      </Box>
+
+      {/* Line Items Table */}
+      <Box mb="24px">
         <InlineLineItems
           items={items}
           currency={currency}
           onChange={onChangeItems}
           onAddItem={onAddItem}
         />
-
-        {/* Totals */}
-        <Flex justify="flex-end">
-          <Box w="160px">
-            <Flex justify="space-between" fontSize="8pt" color="#555" py="3px">
-              <Text>Subtotal</Text>
-              <Text>{formatCurrency(subtotalCents, currency)}</Text>
-            </Flex>
-
-            {visibility.showDiscount && discountAmountCents > 0 && (
-              <Flex justify="space-between" fontSize="8pt" color="#16a34a" py="3px">
-                <Text>Discount{discount?.type === 'percentage' ? ` ${discount.value}%` : ''}</Text>
-                <Text>-{formatCurrency(discountAmountCents, currency)}</Text>
-              </Flex>
-            )}
-
-            {visibility.showTax && taxRate > 0 && (
-              <Flex justify="space-between" fontSize="8pt" color="#555" py="3px">
-                <Text>Tax {taxRate}%</Text>
-                <Text>{formatCurrency(taxAmountCents, currency)}</Text>
-              </Flex>
-            )}
-
-            <Flex
-              justify="space-between"
-              fontSize="10pt"
-              fontWeight="700"
-              color="#111"
-              borderTop="1px solid #333"
-              pt="6px"
-              mt={1}
-            >
-              <Text>Total</Text>
-              <Text>{formatCurrency(totalCents, currency)}</Text>
-            </Flex>
-          </Box>
-        </Flex>
-
-        {/* Notes */}
-        {visibility.showNotes && (
-          <Box mt={4} pt={3} borderTop="1px solid #eee">
-            <Text fontSize="8pt" color="#888" textTransform="uppercase" letterSpacing="0.05em" mb={1}>
-              Notes
-            </Text>
-            <InlineTextArea
-              value={notes}
-              onChange={onChangeNotes}
-              placeholder="Add notes..."
-              fontSize="8pt"
-              color="#555"
-              rows={2}
-            />
-          </Box>
-        )}
       </Box>
+
+      {/* Totals */}
+      <Flex justify="flex-end" mb="32px">
+        <Box w="220px">
+          <Flex justify="space-between" py="6px">
+            <Text fontSize="10px" color={colors.textSecondary}>Subtotal</Text>
+            <Text fontSize="10px" color={colors.text}>
+              {formatCurrency(subtotalCents, currency)}
+            </Text>
+          </Flex>
+
+          {visibility.showDiscount && discountAmountCents > 0 && (
+            <Flex justify="space-between" py="6px">
+              <Text fontSize="10px" color={colors.textSecondary}>
+                Discount{discount?.type === 'percentage' ? ` (${discount.value}%)` : ''}
+              </Text>
+              <Text fontSize="10px" color={colors.success}>
+                -{formatCurrency(discountAmountCents, currency)}
+              </Text>
+            </Flex>
+          )}
+
+          {visibility.showTax && taxRate > 0 && (
+            <Flex justify="space-between" py="6px">
+              <Text fontSize="10px" color={colors.textSecondary}>
+                Tax ({taxRate}%)
+              </Text>
+              <Text fontSize="10px" color={colors.text}>
+                {formatCurrency(taxAmountCents, currency)}
+              </Text>
+            </Flex>
+          )}
+
+          <Flex
+            justify="space-between"
+            py="12px"
+            borderTop="2px solid"
+            borderColor={colors.text}
+            mt="4px"
+          >
+            <Text fontSize="12px" fontWeight="700" color={colors.text}>
+              Total
+            </Text>
+            <Text fontSize="14px" fontWeight="700" color={colors.text}>
+              {formatCurrency(totalCents, currency)}
+            </Text>
+          </Flex>
+        </Box>
+      </Flex>
+
+      {/* Payment Details */}
+      {hasPaymentDetails && paymentMethod && (
+        <Box
+          bg={colors.background}
+          borderRadius="6px"
+          p="16px"
+          mb="24px"
+        >
+          <Text fontSize="10px" fontWeight="500" color={colors.text} mb="8px">
+            Payment Details — {PAYMENT_TYPE_LABELS[paymentMethod.type]}
+          </Text>
+          <Box fontSize="9px" color={colors.textSecondary}>
+            <Text mb="2px">{getPaymentMethodSummary(paymentMethod)}</Text>
+            {paymentMethod.type === 'bank_transfer' && paymentMethod.bankTransfer && (
+              <>
+                {paymentMethod.bankTransfer.accountName && (
+                  <Text mb="2px">Account Name: {paymentMethod.bankTransfer.accountName}</Text>
+                )}
+                {paymentMethod.bankTransfer.accountNumber && (
+                  <Text mb="2px">Account Number: {paymentMethod.bankTransfer.accountNumber}</Text>
+                )}
+                {paymentMethod.bankTransfer.routingNumber && (
+                  <Text mb="2px">Routing Number: {paymentMethod.bankTransfer.routingNumber}</Text>
+                )}
+                {paymentMethod.bankTransfer.iban && (
+                  <Text mb="2px">IBAN: {paymentMethod.bankTransfer.iban}</Text>
+                )}
+                {paymentMethod.bankTransfer.swiftBic && (
+                  <Text mb="2px">SWIFT/BIC: {paymentMethod.bankTransfer.swiftBic}</Text>
+                )}
+              </>
+            )}
+            {paymentMethod.type === 'pix' && paymentMethod.pix && (
+              <>
+                <Text mb="2px">PIX Key: {paymentMethod.pix.pixKey}</Text>
+                {paymentMethod.pix.recipientName && (
+                  <Text mb="2px">Recipient: {paymentMethod.pix.recipientName}</Text>
+                )}
+              </>
+            )}
+            {paymentMethod.type === 'crypto' && paymentMethod.crypto && (
+              <Text mb="2px">{paymentMethod.crypto.walletAddress}</Text>
+            )}
+            {paymentMethod.type === 'other' && paymentMethod.other?.instructions && (
+              <Text mb="2px" whiteSpace="pre-line">{paymentMethod.other.instructions}</Text>
+            )}
+          </Box>
+        </Box>
+      )}
+
+      {/* Notes */}
+      {visibility.showNotes && (
+        <Box borderTop="1px solid" borderColor={colors.border} pt="16px">
+          <Text fontSize="9px" color={colors.textMuted} textTransform="uppercase" letterSpacing="0.5px" mb="6px">
+            Notes
+          </Text>
+          <InlineTextArea
+            value={notes}
+            onChange={onChangeNotes}
+            placeholder="Add notes..."
+            fontSize="9px"
+            color={colors.textSecondary}
+            rows={2}
+          />
+        </Box>
+      )}
     </Box>
   );
 };
