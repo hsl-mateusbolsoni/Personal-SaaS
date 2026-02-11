@@ -1,10 +1,11 @@
-import { Box, Text, Grid, GridItem, Show } from '@chakra-ui/react';
+import { Box, Text, Grid, GridItem } from '@chakra-ui/react';
 import { useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/layout/PageHeader';
 import { WYSIWYGEditor } from '../components/invoice/WYSIWYGEditor';
 import type { VisibilitySettings } from '../components/invoice/WYSIWYGEditor';
 import { EditorSidebar } from '../components/invoice/EditorSidebar';
+import { MobileInvoiceForm } from '../components/invoice/MobileInvoiceForm';
 import { StickyInvoiceFooter } from '../components/invoice/StickyInvoiceFooter';
 import { useInvoiceStore } from '../stores/useInvoiceStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
@@ -51,6 +52,14 @@ export const InvoiceEdit = () => {
     addItemRef.current?.();
   }, []);
 
+  const handleShowTaxChange = (show: boolean) => {
+    setVisibility((v) => ({ ...v, showTax: show }));
+  };
+
+  const handleShowDiscountChange = (show: boolean) => {
+    setVisibility((v) => ({ ...v, showDiscount: show }));
+  };
+
   if (!invoice) {
     return (
       <Box maxW="1400px" mx="auto" px={{ base: 4, md: 8 }} py={8}>
@@ -68,37 +77,65 @@ export const InvoiceEdit = () => {
 
   return (
     <>
-      <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
-        <PageHeader
-          title="Edit Invoice"
-          subtitle="Click any text to edit inline"
-          backPath={ROUTES.INVOICE_PREVIEW(invoice.id)}
-        />
+      {/* Mobile View - visible below lg breakpoint */}
+      <Box display={{ base: 'block', lg: 'none' }}>
+        <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
+          <PageHeader
+            title="Edit Invoice"
+            subtitle="Update the details below"
+            backPath={ROUTES.INVOICE_PREVIEW(invoice.id)}
+          />
+          <MobileInvoiceForm
+            initial={invoice}
+            currency={currency}
+            onCurrencyChange={setCurrency}
+            taxRate={taxRate}
+            onTaxRateChange={setTaxRate}
+            discount={discount}
+            onDiscountChange={setDiscount}
+            showTax={visibility.showTax}
+            onShowTaxChange={handleShowTaxChange}
+            showDiscount={visibility.showDiscount}
+            onShowDiscountChange={handleShowDiscountChange}
+            onSubmit={handleSubmit}
+            onTotalChange={setTotalCents}
+            submitLabel="Save Changes"
+          />
+        </Box>
+      </Box>
 
-        <Grid templateColumns={{ base: '1fr', lg: '1fr 320px' }} gap={6}>
-          <GridItem>
-            <Box
-              bg="brand.100"
-              borderRadius="xl"
-              p={6}
-              mb={24}
-              overflowX="auto"
-            >
-              <WYSIWYGEditor
-                initial={invoice}
-                visibility={visibility}
-                currency={currency}
-                taxRate={taxRate}
-                discount={discount}
-                onSubmitRef={(fn) => { submitRef.current = fn; }}
-                onSubmit={handleSubmit}
-                onTotalChange={setTotalCents}
-                onAddItemRef={(fn) => { addItemRef.current = fn; }}
-              />
-            </Box>
-          </GridItem>
+      {/* Desktop View - visible at lg breakpoint and above */}
+      <Box display={{ base: 'none', lg: 'block' }}>
+        <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
+          <PageHeader
+            title="Edit Invoice"
+            subtitle="Click any text to edit inline"
+            backPath={ROUTES.INVOICE_PREVIEW(invoice.id)}
+          />
 
-          <Show above="lg">
+          <Grid templateColumns="1fr 320px" gap={6}>
+            <GridItem>
+              <Box
+                bg="brand.100"
+                borderRadius="xl"
+                p={6}
+                mb={24}
+                overflowX="auto"
+              >
+                <WYSIWYGEditor
+                  initial={invoice}
+                  visibility={visibility}
+                  currency={currency}
+                  taxRate={taxRate}
+                  discount={discount}
+                  onSubmitRef={(fn) => { submitRef.current = fn; }}
+                  onSubmit={handleSubmit}
+                  onTotalChange={setTotalCents}
+                  onAddItemRef={(fn) => { addItemRef.current = fn; }}
+                />
+              </Box>
+            </GridItem>
+
             <GridItem>
               <EditorSidebar
                 visibility={visibility}
@@ -112,16 +149,16 @@ export const InvoiceEdit = () => {
                 onAddItem={handleAddItem}
               />
             </GridItem>
-          </Show>
-        </Grid>
-      </Box>
+          </Grid>
+        </Box>
 
-      <StickyInvoiceFooter
-        totalCents={totalCents}
-        currency={currency}
-        onSubmit={() => submitRef.current?.()}
-        submitLabel="Save Changes"
-      />
+        <StickyInvoiceFooter
+          totalCents={totalCents}
+          currency={currency}
+          onSubmit={() => submitRef.current?.()}
+          submitLabel="Save Changes"
+        />
+      </Box>
     </>
   );
 };
