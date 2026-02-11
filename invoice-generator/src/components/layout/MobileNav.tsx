@@ -33,6 +33,7 @@ export const MobileNav = () => {
       py={2}
       px={4}
       zIndex={100}
+      display={{ base: 'block', md: 'none' }}
     >
       <Flex justify="space-around" align="center">
         {NAV_ITEMS.map((item) => {
