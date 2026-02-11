@@ -6,15 +6,12 @@ import {
   Input,
   Button,
   Text,
-  Divider,
-  Flex,
   Alert,
   AlertIcon,
   Box,
 } from '@chakra-ui/react';
 import { CheckCircle } from 'phosphor-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { GoogleButton } from './GoogleButton';
 
 interface SignupFormProps {
   onSuccess: () => void;
@@ -79,16 +76,6 @@ export const SignupForm = ({ onSuccess }: SignupFormProps) => {
 
   return (
     <VStack gap={4} as="form" onSubmit={handleSubmit}>
-      <GoogleButton label="Sign up with Google" />
-
-      <Flex align="center" w="100%" gap={3}>
-        <Divider />
-        <Text fontSize="xs" color="brand.400" whiteSpace="nowrap">
-          or sign up with email
-        </Text>
-        <Divider />
-      </Flex>
-
       {error && (
         <Alert status="error" borderRadius="lg" fontSize="sm">
           <AlertIcon />

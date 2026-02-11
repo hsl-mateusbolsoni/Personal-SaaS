@@ -5,14 +5,11 @@ import {
   FormLabel,
   Input,
   Button,
-  Text,
-  Divider,
   Flex,
   Alert,
   AlertIcon,
 } from '@chakra-ui/react';
 import { useAuth } from '../../contexts/AuthContext';
-import { GoogleButton } from './GoogleButton';
 
 interface LoginFormProps {
   onForgotPassword: () => void;
@@ -43,16 +40,6 @@ export const LoginForm = ({ onForgotPassword, onSuccess }: LoginFormProps) => {
 
   return (
     <VStack gap={4} as="form" onSubmit={handleSubmit}>
-      <GoogleButton />
-
-      <Flex align="center" w="100%" gap={3}>
-        <Divider />
-        <Text fontSize="xs" color="brand.400" whiteSpace="nowrap">
-          or continue with email
-        </Text>
-        <Divider />
-      </Flex>
-
       {error && (
         <Alert status="error" borderRadius="lg" fontSize="sm">
           <AlertIcon />
