@@ -93,6 +93,7 @@ export function useDataSync() {
         if (cloudCompanySettings) {
           useSettingsStore.setState((state) => ({
             settings: { ...state.settings, ...cloudCompanySettings },
+            isFirstTime: false, // User has already set up their account
           }));
         }
 

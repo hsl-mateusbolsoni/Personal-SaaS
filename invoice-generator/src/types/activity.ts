@@ -10,6 +10,7 @@ export type ActivityType =
 
 export interface ActivityLog {
   id: string;
+  userId?: string;
   invoiceId: string;
   type: ActivityType;
   description: string;

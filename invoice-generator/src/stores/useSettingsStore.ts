@@ -117,9 +117,13 @@ export const useSettingsStore = create<SettingsStore>()(
 
       markSetupComplete: () => set({ isFirstTime: false }),
 
-      setLastUsedClient: (clientId) => set((state) => ({
-        settings: { ...state.settings, lastUsedClientId: clientId },
-      })),
+      setLastUsedClient: (clientId) => {
+        set((state) => ({
+          settings: { ...state.settings, lastUsedClientId: clientId },
+        }));
+        const state = useSettingsStore.getState();
+        syncCompanySettingsOnChange(state.settings);
+      },
     }),
     {
       name: 'invoice-generator-v1:settings',

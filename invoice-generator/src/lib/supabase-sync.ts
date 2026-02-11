@@ -258,6 +258,7 @@ export async function fetchActivities(): Promise<ActivityLog[]> {
 
   return (data || []).map((row) => ({
     id: row.id,
+    userId: row.user_id,
     invoiceId: row.invoice_id,
     type: row.type,
     description: row.description || '',
