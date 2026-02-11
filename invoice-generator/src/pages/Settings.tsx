@@ -1,6 +1,6 @@
-import { Box, VStack, Text, Select, FormControl, FormLabel, Switch, Flex, Button, Divider, Input, SimpleGrid, Avatar, useDisclosure } from '@chakra-ui/react';
+import { Box, VStack, Text, Select, FormControl, FormLabel, Switch, Flex, Button, Divider, Input, SimpleGrid, Avatar, useDisclosure, HStack } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
-import { FloppyDisk, User, Export, Trash, SignOut } from 'phosphor-react';
+import { FloppyDisk, User, Export, Trash, SignOut, PencilSimple, Check, X } from 'phosphor-react';
 import { Container } from '../components/layout/Container';
 import { PageHeader } from '../components/layout/PageHeader';
 import { CurrencySelect } from '../components/ui/CurrencySelect';
@@ -12,7 +12,7 @@ import type { DateFormat } from '../types/settings';
 import type { CurrencyCode } from '../types/currency';
 
 export const Settings = () => {
-  const { user, isLoading: authLoading, isConfigured, signOut } = useAuth();
+  const { user, isLoading: authLoading, isConfigured, signOut, updateProfile } = useAuth();
   const { isOpen: isAuthOpen, onOpen: onAuthOpen, onClose: onAuthClose } = useDisclosure();
   const { appSettings, updateAppSettings } = useSettingsStore();
 
@@ -23,6 +23,33 @@ export const Settings = () => {
   const [defaultTaxRate, setDefaultTaxRate] = useState(appSettings.defaultTaxRate);
   const [defaultCurrency, setDefaultCurrency] = useState<CurrencyCode>(appSettings.defaultCurrency);
   const [invoiceNumberPrefix, setInvoiceNumberPrefix] = useState(appSettings.invoiceNumberPrefix);
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const handleEditName = () => {
+    setEditName(user?.user_metadata?.full_name || '');
+    setIsEditingName(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingName(false);
+    setEditName('');
+  };
+
+  const handleSaveName = async () => {
+    if (!editName.trim()) return;
+    setIsSavingProfile(true);
+    const { error } = await updateProfile({ full_name: editName.trim() });
+    setIsSavingProfile(false);
+    if (error) {
+      toast.error({ title: 'Failed to update profile', description: error.message });
+    } else {
+      toast.success({ title: 'Profile updated' });
+      setIsEditingName(false);
+    }
+  };
 
   useEffect(() => {
     setDateFormat(appSettings.dateFormat);
@@ -117,39 +144,86 @@ export const Settings = () => {
               </Text>
             </Box>
           ) : user ? (
-            <Flex
-              align="center"
-              justify="space-between"
-              p={4}
-              bg="accent.50"
-              borderRadius="lg"
-              border="1px solid"
-              borderColor="accent.200"
-            >
-              <Flex align="center" gap={3}>
-                <Avatar
-                  size="sm"
-                  name={user.user_metadata?.full_name || user.email}
-                  src={user.user_metadata?.avatar_url}
-                />
-                <Box>
-                  <Text fontSize="sm" fontWeight="600" color="brand.800">
-                    {user.user_metadata?.full_name || 'User'}
-                  </Text>
-                  <Text fontSize="xs" color="brand.500">
-                    {user.email}
-                  </Text>
-                </Box>
-              </Flex>
-              <Button
-                size="sm"
-                variant="ghost"
-                leftIcon={<SignOut size={14} />}
-                onClick={handleSignOut}
+            <VStack align="stretch" gap={4}>
+              <Flex
+                align="center"
+                justify="space-between"
+                p={4}
+                bg="accent.50"
+                borderRadius="lg"
+                border="1px solid"
+                borderColor="accent.200"
               >
-                Sign Out
-              </Button>
-            </Flex>
+                <Flex align="center" gap={3}>
+                  <Avatar
+                    size="md"
+                    name={user.user_metadata?.full_name || user.email}
+                    src={user.user_metadata?.avatar_url}
+                  />
+                  <Box>
+                    {isEditingName ? (
+                      <HStack>
+                        <Input
+                          size="sm"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="Your name"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveName();
+                            if (e.key === 'Escape') handleCancelEdit();
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          colorScheme="green"
+                          variant="ghost"
+                          onClick={handleSaveName}
+                          isLoading={isSavingProfile}
+                          p={1}
+                        >
+                          <Check size={16} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleCancelEdit}
+                          p={1}
+                        >
+                          <X size={16} />
+                        </Button>
+                      </HStack>
+                    ) : (
+                      <Flex align="center" gap={2}>
+                        <Text fontSize="sm" fontWeight="600" color="brand.800">
+                          {user.user_metadata?.full_name || 'Add your name'}
+                        </Text>
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={handleEditName}
+                          p={1}
+                          minW="auto"
+                        >
+                          <PencilSimple size={14} />
+                        </Button>
+                      </Flex>
+                    )}
+                    <Text fontSize="xs" color="brand.500">
+                      {user.email}
+                    </Text>
+                  </Box>
+                </Flex>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  leftIcon={<SignOut size={14} />}
+                  onClick={handleSignOut}
+                >
+                  Sign Out
+                </Button>
+              </Flex>
+            </VStack>
           ) : (
             <Box p={4} bg="brand.50" borderRadius="lg" border="1px dashed" borderColor="brand.200">
               <Text fontSize="sm" color="brand.500" textAlign="center">
