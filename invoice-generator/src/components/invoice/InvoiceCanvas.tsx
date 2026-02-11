@@ -13,6 +13,19 @@ const DEFAULT_VISIBILITY: InvoiceVisibility = {
   showNotes: true,
 };
 
+// Stripe-inspired color palette
+const colors = {
+  primary: '#635bff',
+  text: '#1a1a1a',
+  textSecondary: '#6b7280',
+  textMuted: '#9ca3af',
+  border: '#e5e7eb',
+  borderLight: '#f3f4f6',
+  background: '#f9fafb',
+  success: '#10b981',
+  white: '#ffffff',
+};
+
 interface InvoiceCanvasProps {
   invoice: Invoice;
   businessId?: string;
@@ -22,7 +35,6 @@ interface InvoiceCanvasProps {
 }
 
 export const InvoiceCanvas = ({ invoice, businessId, paymentMethod, logo, visibility: visibilityProp }: InvoiceCanvasProps) => {
-  // Merge visibility settings with defaults to ensure all properties exist
   const visibility: InvoiceVisibility = {
     ...DEFAULT_VISIBILITY,
     ...(invoice.visibility || visibilityProp || {}),
@@ -38,187 +50,305 @@ export const InvoiceCanvas = ({ invoice, businessId, paymentMethod, logo, visibi
     paymentMethod.other?.instructions
   );
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   return (
     <Box
-      bg="white"
+      bg={colors.white}
       w="595px"
       minH="842px"
-      p={10}
-      fontFamily="'Manrope', sans-serif"
-      color="#333"
+      p="48px"
+      fontFamily="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+      color={colors.text}
       shadow="xl"
       mx="auto"
-      display="flex"
-      flexDirection="column"
+      fontSize="10px"
     >
-      {/* TOP SECTION */}
-      <Box flex="1">
-        {/* Header: Company + Invoice Details */}
-        <Flex justify="space-between" mb={6}>
-          {/* Company Info */}
-          <Box>
-            {visibility.showLogo && logo && (
-              <Image
-                src={logo}
-                alt="Logo"
-                maxH="40px"
-                maxW="120px"
-                objectFit="contain"
-                mb={2}
-              />
-            )}
-            <Text fontSize="14pt" fontWeight="700" color="#111">
-              {invoice.from.name}
-            </Text>
-            {visibility.showBusinessId && businessId && (
-              <Text fontSize="8pt" color="#888" mt="2px">{businessId}</Text>
-            )}
-            <Text fontSize="8pt" color="#555" mt={2}>{invoice.from.email}</Text>
-            <Text fontSize="8pt" color="#555" mt="2px">{invoice.from.phone}</Text>
-            <Text fontSize="8pt" color="#555" mt="2px" whiteSpace="pre-line">{invoice.from.address}</Text>
-          </Box>
-
-          {/* Invoice Details */}
-          <Box textAlign="right">
-            <Text fontSize="14pt" fontWeight="700" color="#111">
-              {invoice.invoiceNumber}
-            </Text>
-            <Text fontSize="8pt" color="#555" mt={2}>Issued {invoice.date}</Text>
-            <Text fontSize="8pt" color="#555" mt="2px">Due {invoice.dueDate}</Text>
-          </Box>
-        </Flex>
-
-        {/* Bill To */}
-        <Box mb={4}>
-          <Text fontSize="8pt" color="#888" textTransform="uppercase" letterSpacing="0.05em" mb={1}>
-            Bill To
+      {/* Header */}
+      <Flex justify="space-between" align="flex-start" mb="40px">
+        <Box flex={1}>
+          {visibility.showLogo && logo && (
+            <Image
+              src={logo}
+              alt="Logo"
+              maxH="48px"
+              maxW="140px"
+              objectFit="contain"
+              mb={3}
+            />
+          )}
+          <Text fontSize="20px" fontWeight="700" color={colors.text} mb="4px">
+            {invoice.from.name}
           </Text>
-          <Text fontSize="10pt" fontWeight="600" color="#111">
-            {invoice.to.name}
+          {visibility.showBusinessId && businessId && (
+            <Text fontSize="9px" color={colors.textMuted} mb="8px">
+              {businessId}
+            </Text>
+          )}
+          <Text fontSize="9px" color={colors.textSecondary} lineHeight="1.5">
+            {[invoice.from.email, invoice.from.phone].filter(Boolean).join(' • ')}
           </Text>
-          <Text fontSize="8pt" color="#555" mt="2px">{invoice.to.email}</Text>
-          <Text fontSize="8pt" color="#555" mt="2px">{invoice.to.phone}</Text>
-          <Text fontSize="8pt" color="#555" mt="2px" whiteSpace="pre-line">{invoice.to.address}</Text>
+          {invoice.from.address && (
+            <Text fontSize="9px" color={colors.textSecondary} lineHeight="1.5">
+              {invoice.from.address}
+            </Text>
+          )}
         </Box>
+        <Text
+          fontSize="32px"
+          fontWeight="300"
+          color={colors.textMuted}
+          letterSpacing="2px"
+        >
+          INVOICE
+        </Text>
+      </Flex>
 
-        {/* Payment Details */}
-        {hasPaymentDetails && paymentMethod && (
-          <Box mb={4}>
-            <Text fontSize="8pt" color="#888" textTransform="uppercase" letterSpacing="0.05em" mb={1}>
-              Payment — {PAYMENT_TYPE_LABELS[paymentMethod.type]}
-            </Text>
-            <Box fontSize="8pt" color="#555">
-              <Text mt="2px">{getPaymentMethodSummary(paymentMethod)}</Text>
-              {paymentMethod.type === 'bank_transfer' && paymentMethod.bankTransfer && (
-                <>
-                  {paymentMethod.bankTransfer.accountName && <Text mt="2px">{paymentMethod.bankTransfer.accountName}</Text>}
-                  {paymentMethod.bankTransfer.accountNumber && <Text mt="2px">Account: {paymentMethod.bankTransfer.accountNumber}</Text>}
-                  {paymentMethod.bankTransfer.routingNumber && <Text mt="2px">Routing: {paymentMethod.bankTransfer.routingNumber}</Text>}
-                  {paymentMethod.bankTransfer.iban && <Text mt="2px">IBAN: {paymentMethod.bankTransfer.iban}</Text>}
-                  {paymentMethod.bankTransfer.swiftBic && <Text mt="2px">SWIFT: {paymentMethod.bankTransfer.swiftBic}</Text>}
-                </>
-              )}
-              {paymentMethod.type === 'pix' && paymentMethod.pix && (
-                <>
-                  <Text mt="2px">PIX: {paymentMethod.pix.pixKey}</Text>
-                  {paymentMethod.pix.recipientName && <Text mt="2px">{paymentMethod.pix.recipientName}</Text>}
-                </>
-              )}
-              {paymentMethod.type === 'crypto' && paymentMethod.crypto && (
-                <Text mt="2px">{paymentMethod.crypto.walletAddress}</Text>
-              )}
-              {paymentMethod.type === 'other' && paymentMethod.other?.instructions && (
-                <Text mt="2px" whiteSpace="pre-line">{paymentMethod.other.instructions}</Text>
-              )}
-            </Box>
-          </Box>
+      {/* Invoice Meta Box */}
+      <Box
+        bg={colors.background}
+        borderRadius="6px"
+        p="16px"
+        mb="32px"
+      >
+        <Flex justify="space-between" mb="8px">
+          <Text fontSize="9px" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.5px">
+            Invoice Number
+          </Text>
+          <Text fontSize="10px" color={colors.text} fontWeight="500">
+            {invoice.invoiceNumber}
+          </Text>
+        </Flex>
+        <Flex justify="space-between" mb="8px">
+          <Text fontSize="9px" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.5px">
+            Issue Date
+          </Text>
+          <Text fontSize="10px" color={colors.text} fontWeight="500">
+            {formatDate(invoice.date)}
+          </Text>
+        </Flex>
+        <Flex justify="space-between" mb="8px">
+          <Text fontSize="9px" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.5px">
+            Due Date
+          </Text>
+          <Text fontSize="10px" color={colors.text} fontWeight="500">
+            {formatDate(invoice.dueDate)}
+          </Text>
+        </Flex>
+        <Flex
+          justify="space-between"
+          pt="8px"
+          borderTop="1px solid"
+          borderColor={colors.border}
+        >
+          <Text fontSize="9px" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.5px">
+            Amount Due
+          </Text>
+          <Text fontSize="14px" color={colors.text} fontWeight="700">
+            {formatCurrency(invoice.totalCents, invoice.currency)}
+          </Text>
+        </Flex>
+      </Box>
+
+      {/* Bill To */}
+      <Box mb="32px">
+        <Text
+          fontSize="9px"
+          color={colors.textMuted}
+          textTransform="uppercase"
+          letterSpacing="0.5px"
+          mb="8px"
+        >
+          Bill To
+        </Text>
+        <Text fontSize="11px" fontWeight="500" color={colors.text} mb="4px">
+          {invoice.to.name}
+        </Text>
+        {invoice.to.email && (
+          <Text fontSize="9px" color={colors.textSecondary} lineHeight="1.5">
+            {invoice.to.email}
+          </Text>
+        )}
+        {invoice.to.phone && (
+          <Text fontSize="9px" color={colors.textSecondary} lineHeight="1.5">
+            {invoice.to.phone}
+          </Text>
+        )}
+        {invoice.to.address && (
+          <Text fontSize="9px" color={colors.textSecondary} lineHeight="1.5" whiteSpace="pre-line">
+            {invoice.to.address}
+          </Text>
         )}
       </Box>
 
-      {/* BOTTOM SECTION: Line Items + Totals */}
-      <Box>
-        {/* Line Items Table */}
-        <Box mb={4}>
+      {/* Line Items Table */}
+      <Box mb="24px">
+        {/* Table Header */}
+        <Flex
+          bg={colors.background}
+          py="10px"
+          px="12px"
+          borderRadius="4px"
+          mb="4px"
+        >
+          <Text flex={4} fontSize="9px" fontWeight="500" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.3px">
+            Description
+          </Text>
+          <Text flex={1} fontSize="9px" fontWeight="500" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.3px" textAlign="right">
+            Qty
+          </Text>
+          <Text flex={1.5} fontSize="9px" fontWeight="500" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.3px" textAlign="right">
+            Unit Price
+          </Text>
+          <Text flex={1.5} fontSize="9px" fontWeight="500" color={colors.textSecondary} textTransform="uppercase" letterSpacing="0.3px" textAlign="right">
+            Amount
+          </Text>
+        </Flex>
+
+        {/* Table Rows */}
+        {invoice.items.map((item) => (
           <Flex
-            borderBottom="1px solid #ddd"
-            pb="6px"
-            mb={1}
-            fontSize="8pt"
-            color="#888"
-            textTransform="uppercase"
-            letterSpacing="0.03em"
+            key={item.id}
+            py="12px"
+            px="12px"
+            borderBottom="1px solid"
+            borderColor={colors.borderLight}
           >
-            <Text flex={3}>Description</Text>
-            <Text flex={1} textAlign="right">Qty</Text>
-            <Text flex={1} textAlign="right">Rate</Text>
-            <Text flex={1} textAlign="right">Amount</Text>
+            <Text flex={4} fontSize="10px" color={colors.text}>
+              {item.description}
+            </Text>
+            <Text flex={1} fontSize="10px" color={colors.textSecondary} textAlign="right">
+              {item.quantity}
+            </Text>
+            <Text flex={1.5} fontSize="10px" color={colors.textSecondary} textAlign="right">
+              {formatCurrency(item.rateCents, invoice.currency)}
+            </Text>
+            <Text flex={1.5} fontSize="10px" color={colors.text} textAlign="right">
+              {formatCurrency(item.amountCents, invoice.currency)}
+            </Text>
+          </Flex>
+        ))}
+      </Box>
+
+      {/* Totals */}
+      <Flex justify="flex-end" mb="32px">
+        <Box w="220px">
+          <Flex justify="space-between" py="6px">
+            <Text fontSize="10px" color={colors.textSecondary}>Subtotal</Text>
+            <Text fontSize="10px" color={colors.text}>
+              {formatCurrency(invoice.subtotalCents, invoice.currency)}
+            </Text>
           </Flex>
 
-          {invoice.items.map((item) => (
-            <Flex
-              key={item.id}
-              py="6px"
-              fontSize="8pt"
-              color="#333"
-              borderBottom="1px solid #f0f0f0"
-            >
-              <Text flex={3}>{item.description}</Text>
-              <Text flex={1} textAlign="right">{item.quantity}</Text>
-              <Text flex={1} textAlign="right">{formatCurrency(item.rateCents, invoice.currency)}</Text>
-              <Text flex={1} textAlign="right">{formatCurrency(item.amountCents, invoice.currency)}</Text>
+          {visibility.showDiscount && invoice.discount && invoice.discountAmountCents > 0 && (
+            <Flex justify="space-between" py="6px">
+              <Text fontSize="10px" color={colors.textSecondary}>
+                Discount{invoice.discount.type === 'percentage' ? ` (${invoice.discount.value}%)` : ''}
+              </Text>
+              <Text fontSize="10px" color={colors.success}>
+                -{formatCurrency(invoice.discountAmountCents, invoice.currency)}
+              </Text>
             </Flex>
-          ))}
+          )}
+
+          {visibility.showTax && invoice.taxRate > 0 && (
+            <Flex justify="space-between" py="6px">
+              <Text fontSize="10px" color={colors.textSecondary}>
+                Tax ({invoice.taxRate}%)
+              </Text>
+              <Text fontSize="10px" color={colors.text}>
+                {formatCurrency(invoice.taxAmountCents, invoice.currency)}
+              </Text>
+            </Flex>
+          )}
+
+          <Flex
+            justify="space-between"
+            py="12px"
+            borderTop="2px solid"
+            borderColor={colors.text}
+            mt="4px"
+          >
+            <Text fontSize="12px" fontWeight="700" color={colors.text}>
+              Total
+            </Text>
+            <Text fontSize="14px" fontWeight="700" color={colors.text}>
+              {formatCurrency(invoice.totalCents, invoice.currency)}
+            </Text>
+          </Flex>
         </Box>
+      </Flex>
 
-        {/* Totals */}
-        <Flex justify="flex-end">
-          <Box w="160px">
-            <Flex justify="space-between" fontSize="8pt" color="#555" py="3px">
-              <Text>Subtotal</Text>
-              <Text>{formatCurrency(invoice.subtotalCents, invoice.currency)}</Text>
-            </Flex>
-
-            {visibility.showDiscount && invoice.discount && invoice.discountAmountCents > 0 && (
-              <Flex justify="space-between" fontSize="8pt" color="#16a34a" py="3px">
-                <Text>Discount{invoice.discount.type === 'percentage' ? ` ${invoice.discount.value}%` : ''}</Text>
-                <Text>-{formatCurrency(invoice.discountAmountCents, invoice.currency)}</Text>
-              </Flex>
+      {/* Payment Details */}
+      {hasPaymentDetails && paymentMethod && (
+        <Box
+          bg={colors.background}
+          borderRadius="6px"
+          p="16px"
+          mb="24px"
+        >
+          <Text fontSize="10px" fontWeight="500" color={colors.text} mb="8px">
+            Payment Details — {PAYMENT_TYPE_LABELS[paymentMethod.type]}
+          </Text>
+          <Box fontSize="9px" color={colors.textSecondary}>
+            <Text mb="2px">{getPaymentMethodSummary(paymentMethod)}</Text>
+            {paymentMethod.type === 'bank_transfer' && paymentMethod.bankTransfer && (
+              <>
+                {paymentMethod.bankTransfer.accountName && (
+                  <Text mb="2px">Account Name: {paymentMethod.bankTransfer.accountName}</Text>
+                )}
+                {paymentMethod.bankTransfer.accountNumber && (
+                  <Text mb="2px">Account Number: {paymentMethod.bankTransfer.accountNumber}</Text>
+                )}
+                {paymentMethod.bankTransfer.routingNumber && (
+                  <Text mb="2px">Routing Number: {paymentMethod.bankTransfer.routingNumber}</Text>
+                )}
+                {paymentMethod.bankTransfer.iban && (
+                  <Text mb="2px">IBAN: {paymentMethod.bankTransfer.iban}</Text>
+                )}
+                {paymentMethod.bankTransfer.swiftBic && (
+                  <Text mb="2px">SWIFT/BIC: {paymentMethod.bankTransfer.swiftBic}</Text>
+                )}
+              </>
             )}
-
-            {visibility.showTax && invoice.taxRate > 0 && (
-              <Flex justify="space-between" fontSize="8pt" color="#555" py="3px">
-                <Text>Tax {invoice.taxRate}%</Text>
-                <Text>{formatCurrency(invoice.taxAmountCents, invoice.currency)}</Text>
-              </Flex>
+            {paymentMethod.type === 'pix' && paymentMethod.pix && (
+              <>
+                <Text mb="2px">PIX Key: {paymentMethod.pix.pixKey}</Text>
+                {paymentMethod.pix.recipientName && (
+                  <Text mb="2px">Recipient: {paymentMethod.pix.recipientName}</Text>
+                )}
+              </>
             )}
-
-            <Flex
-              justify="space-between"
-              fontSize="10pt"
-              fontWeight="700"
-              color="#111"
-              borderTop="1px solid #333"
-              pt="6px"
-              mt={1}
-            >
-              <Text>Total</Text>
-              <Text>{formatCurrency(invoice.totalCents, invoice.currency)}</Text>
-            </Flex>
+            {paymentMethod.type === 'crypto' && paymentMethod.crypto && (
+              <Text mb="2px">{paymentMethod.crypto.walletAddress}</Text>
+            )}
+            {paymentMethod.type === 'other' && paymentMethod.other?.instructions && (
+              <Text mb="2px" whiteSpace="pre-line">{paymentMethod.other.instructions}</Text>
+            )}
           </Box>
-        </Flex>
+        </Box>
+      )}
 
-        {/* Notes */}
-        {visibility.showNotes && invoice.metadata?.notes && (
-          <Box mt={4} pt={3} borderTop="1px solid #eee">
-            <Text fontSize="8pt" color="#888" textTransform="uppercase" letterSpacing="0.05em" mb={1}>
-              Notes
-            </Text>
-            <Text fontSize="8pt" color="#555" whiteSpace="pre-line">
-              {invoice.metadata.notes}
-            </Text>
-          </Box>
-        )}
-      </Box>
+      {/* Notes */}
+      {visibility.showNotes && invoice.metadata?.notes && (
+        <Box borderTop="1px solid" borderColor={colors.border} pt="16px">
+          <Text
+            fontSize="9px"
+            color={colors.textMuted}
+            textTransform="uppercase"
+            letterSpacing="0.5px"
+            mb="6px"
+          >
+            Notes
+          </Text>
+          <Text fontSize="9px" color={colors.textSecondary} lineHeight="1.5" whiteSpace="pre-line">
+            {invoice.metadata.notes}
+          </Text>
+        </Box>
+      )}
     </Box>
   );
 };
