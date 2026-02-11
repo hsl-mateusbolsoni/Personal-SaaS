@@ -13,13 +13,13 @@ const DEFAULT_VISIBILITY: InvoiceVisibility = {
   showNotes: true,
 };
 
-// Register Inter font (more reliable CDN)
+// Register Roboto font (TTF format required by react-pdf)
 Font.register({
-  family: 'Inter',
+  family: 'Roboto',
   fonts: [
-    { src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff2', fontWeight: 400 },
-    { src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-600-normal.woff2', fontWeight: 600 },
-    { src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff2', fontWeight: 700 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf', fontWeight: 400 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-medium-webfont.ttf', fontWeight: 500 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf', fontWeight: 700 },
   ],
 });
 
@@ -27,7 +27,7 @@ Font.register({
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: 'Inter',
+    fontFamily: 'Roboto',
     color: '#333',
     display: 'flex',
     flexDirection: 'column',
