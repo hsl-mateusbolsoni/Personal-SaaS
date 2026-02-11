@@ -1,15 +1,19 @@
-import { Box, VStack, Text, Select, FormControl, FormLabel, Switch, Flex, Button, Divider, Input, SimpleGrid } from '@chakra-ui/react';
+import { Box, VStack, Text, Select, FormControl, FormLabel, Switch, Flex, Button, Divider, Input, SimpleGrid, Avatar, useDisclosure } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
-import { FloppyDisk, User, Export, Trash } from 'phosphor-react';
+import { FloppyDisk, User, Export, Trash, SignOut } from 'phosphor-react';
 import { Container } from '../components/layout/Container';
 import { PageHeader } from '../components/layout/PageHeader';
 import { CurrencySelect } from '../components/ui/CurrencySelect';
+import { AuthModal } from '../components/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { toast } from '../utils/toast';
 import type { DateFormat } from '../types/settings';
 import type { CurrencyCode } from '../types/currency';
 
 export const Settings = () => {
+  const { user, isLoading: authLoading, isConfigured, signOut } = useAuth();
+  const { isOpen: isAuthOpen, onOpen: onAuthOpen, onClose: onAuthClose } = useDisclosure();
   const { appSettings, updateAppSettings } = useSettingsStore();
 
   const [dateFormat, setDateFormat] = useState<DateFormat>(appSettings.dateFormat);
@@ -71,6 +75,11 @@ export const Settings = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    toast.info({ title: 'Signed out successfully' });
+  };
+
   return (
     <Container>
       <PageHeader
@@ -79,7 +88,7 @@ export const Settings = () => {
       />
 
       <VStack gap={6} align="stretch">
-        {/* Account Section - Placeholder for future login */}
+        {/* Account Section */}
         <Box bg="white" p={6} borderRadius="xl" shadow="sm" border="1px solid" borderColor="brand.100">
           <Flex align="center" gap={3} mb={4}>
             <Box p={2} borderRadius="full" bg="brand.100">
@@ -90,20 +99,69 @@ export const Settings = () => {
                 Account
               </Text>
               <Text fontSize="xs" color="brand.400">
-                Manage your account settings
+                {user ? 'Manage your account' : 'Sign in to sync your data'}
               </Text>
             </Box>
           </Flex>
-          <Box p={4} bg="brand.50" borderRadius="lg" border="1px dashed" borderColor="brand.200">
-            <Text fontSize="sm" color="brand.500" textAlign="center">
-              Sign in to sync your data across devices and access premium features.
-            </Text>
-            <Flex justify="center" mt={3}>
-              <Button size="sm" variant="outline" isDisabled>
-                Sign In (Coming Soon)
+
+          {!isConfigured ? (
+            <Box p={4} bg="warning.50" borderRadius="lg" border="1px dashed" borderColor="warning.500">
+              <Text fontSize="sm" color="warning.600" textAlign="center">
+                Authentication is not configured. Add Supabase credentials to enable sign in.
+              </Text>
+            </Box>
+          ) : authLoading ? (
+            <Box p={4} bg="brand.50" borderRadius="lg">
+              <Text fontSize="sm" color="brand.500" textAlign="center">
+                Loading...
+              </Text>
+            </Box>
+          ) : user ? (
+            <Flex
+              align="center"
+              justify="space-between"
+              p={4}
+              bg="accent.50"
+              borderRadius="lg"
+              border="1px solid"
+              borderColor="accent.200"
+            >
+              <Flex align="center" gap={3}>
+                <Avatar
+                  size="sm"
+                  name={user.user_metadata?.full_name || user.email}
+                  src={user.user_metadata?.avatar_url}
+                />
+                <Box>
+                  <Text fontSize="sm" fontWeight="600" color="brand.800">
+                    {user.user_metadata?.full_name || 'User'}
+                  </Text>
+                  <Text fontSize="xs" color="brand.500">
+                    {user.email}
+                  </Text>
+                </Box>
+              </Flex>
+              <Button
+                size="sm"
+                variant="ghost"
+                leftIcon={<SignOut size={14} />}
+                onClick={handleSignOut}
+              >
+                Sign Out
               </Button>
             </Flex>
-          </Box>
+          ) : (
+            <Box p={4} bg="brand.50" borderRadius="lg" border="1px dashed" borderColor="brand.200">
+              <Text fontSize="sm" color="brand.500" textAlign="center">
+                Sign in to sync your data across devices and access premium features.
+              </Text>
+              <Flex justify="center" mt={3}>
+                <Button size="sm" onClick={onAuthOpen}>
+                  Sign In
+                </Button>
+              </Flex>
+            </Box>
+          )}
         </Box>
 
         {/* Invoice Defaults */}
@@ -248,6 +306,8 @@ export const Settings = () => {
           </Button>
         </Flex>
       </VStack>
+
+      <AuthModal isOpen={isAuthOpen} onClose={onAuthClose} />
     </Container>
   );
 };

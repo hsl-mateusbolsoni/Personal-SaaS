@@ -1,6 +1,7 @@
-import { Box, VStack, Text, Flex, Divider } from '@chakra-ui/react';
+import { Box, VStack, Text, Flex, Divider, Avatar } from '@chakra-ui/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Receipt, FileText, Users, Buildings, Gear } from 'phosphor-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../config/routes';
 
 const MAIN_NAV = [
@@ -16,6 +17,7 @@ const SETTINGS_NAV = [
 export const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const isActive = (path: string) => {
     if (path === ROUTES.DASHBOARD) {
@@ -60,6 +62,8 @@ export const Sidebar = () => {
       px={3}
       position="sticky"
       top={0}
+      display="flex"
+      flexDirection="column"
     >
       <Flex
         align="center"
@@ -86,6 +90,37 @@ export const Sidebar = () => {
         </Text>
         {SETTINGS_NAV.map(renderNavItem)}
       </VStack>
+
+      {/* User Profile at bottom */}
+      {user && (
+        <Flex
+          align="center"
+          gap={2}
+          px={3}
+          py={2}
+          mt={4}
+          borderTop="1px solid"
+          borderColor="brand.100"
+          cursor="pointer"
+          onClick={() => navigate(ROUTES.SETTINGS)}
+          _hover={{ bg: 'brand.50' }}
+          borderRadius="lg"
+        >
+          <Avatar
+            size="xs"
+            name={user.user_metadata?.full_name || user.email}
+            src={user.user_metadata?.avatar_url}
+          />
+          <Box flex={1} overflow="hidden">
+            <Text fontSize="xs" fontWeight="600" color="brand.700" noOfLines={1}>
+              {user.user_metadata?.full_name || 'User'}
+            </Text>
+            <Text fontSize="10px" color="brand.400" noOfLines={1}>
+              {user.email}
+            </Text>
+          </Box>
+        </Flex>
+      )}
     </Box>
   );
 };
