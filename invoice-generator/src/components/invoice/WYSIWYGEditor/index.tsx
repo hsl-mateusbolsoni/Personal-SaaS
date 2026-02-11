@@ -1,9 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { EditorCanvas } from './EditorCanvas';
-import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { calculateInvoiceTotals } from '../../../utils/currency';
-import { todayISO, futureDateISO } from '../../../utils/formatting';
-import type { Invoice, CompanyInfo, ClientInfo, LineItem } from '../../../types/invoice';
+import { useInvoiceForm } from '../../../hooks/useInvoiceForm';
+import type { Invoice } from '../../../types/invoice';
 import type { CurrencyCode } from '../../../types/currency';
 
 export interface VisibilitySettings {
@@ -38,109 +36,56 @@ export const WYSIWYGEditor = ({
   onTotalChange,
   onAddItemRef,
 }: WYSIWYGEditorProps) => {
-  const settings = useSettingsStore((s) => s.settings);
-  const appSettings = useSettingsStore((s) => s.appSettings);
-
-  const [invoiceNumber, setInvoiceNumber] = useState(
-    initial?.invoiceNumber || `${appSettings.invoiceNumberPrefix}${appSettings.nextInvoiceNumber.toString().padStart(3, '0')}`
-  );
-  const [date, setDate] = useState(initial?.date || todayISO());
-  const [dueDate, setDueDate] = useState(initial?.dueDate || futureDateISO(30));
-  const [from, setFrom] = useState<CompanyInfo>(
-    initial?.from || {
-      name: settings.name,
-      email: settings.email,
-      phone: settings.phone,
-      address: settings.address,
-    }
-  );
-  const [to, setTo] = useState<ClientInfo>(
-    initial?.to || { name: '', email: '', phone: '', address: '' }
-  );
-  const [items, setItems] = useState<LineItem[]>(
-    initial?.items || [
-      { id: crypto.randomUUID(), description: '', quantity: 1, rateCents: 0, amountCents: 0 },
-    ]
-  );
-  const [notes, setNotes] = useState(initial?.metadata?.notes || '');
-  const [logo, setLogo] = useState<string | null>(null);
-
-  const totals = calculateInvoiceTotals(items, taxRate, discount);
-
-  useEffect(() => {
-    if (onTotalChange) {
-      onTotalChange(totals.totalCents);
-    }
-  }, [totals.totalCents, onTotalChange]);
-
-  const addItem = useCallback(() => {
-    setItems((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), description: '', quantity: 1, rateCents: 0, amountCents: 0 },
-    ]);
-  }, []);
-
-  useEffect(() => {
-    if (onAddItemRef) {
-      onAddItemRef(addItem);
-    }
-  }, [onAddItemRef, addItem]);
-
-  const getDraft = useCallback((): Partial<Invoice> => ({
-    ...(initial?.id ? { id: initial.id } : {}),
-    invoiceNumber,
-    date,
-    dueDate,
+  const form = useInvoiceForm({
+    initial,
+    visibility,
     currency,
-    from,
-    to,
-    items,
     taxRate,
     discount,
-    visibility,
-    metadata: notes ? { notes } : undefined,
-    ...totals,
-  }), [invoiceNumber, date, dueDate, currency, from, to, items, taxRate, discount, visibility, notes, totals, initial?.id]);
+    onTotalChange,
+  });
 
   const handleSubmit = useCallback(() => {
-    onSubmit(getDraft());
-  }, [onSubmit, getDraft]);
+    onSubmit(form.toDraft());
+  }, [onSubmit, form.toDraft]);
 
   useEffect(() => {
-    if (onSubmitRef) {
-      onSubmitRef(handleSubmit);
-    }
+    onSubmitRef?.(handleSubmit);
   }, [onSubmitRef, handleSubmit]);
+
+  useEffect(() => {
+    onAddItemRef?.(form.addItem);
+  }, [onAddItemRef, form.addItem]);
 
   return (
     <EditorCanvas
-      invoiceNumber={invoiceNumber}
-      date={date}
-      dueDate={dueDate}
-      from={from}
-      to={to}
-      items={items}
+      invoiceNumber={form.invoiceNumber}
+      date={form.date}
+      dueDate={form.dueDate}
+      from={form.from}
+      to={form.to}
+      items={form.items}
       currency={currency}
-      subtotalCents={totals.subtotalCents}
-      discountAmountCents={totals.discountAmountCents}
+      subtotalCents={form.totals.subtotalCents}
+      discountAmountCents={form.totals.discountAmountCents}
       taxRate={taxRate}
-      taxAmountCents={totals.taxAmountCents}
-      totalCents={totals.totalCents}
+      taxAmountCents={form.totals.taxAmountCents}
+      totalCents={form.totals.totalCents}
       discount={discount}
-      notes={notes}
-      logo={logo}
+      notes={form.notes}
+      logo={form.logo}
       visibility={visibility}
-      businessId={settings.businessId}
-      paymentMethod={settings.paymentMethods.find((m) => m.isDefault)}
-      onChangeInvoiceNumber={setInvoiceNumber}
-      onChangeDate={setDate}
-      onChangeDueDate={setDueDate}
-      onChangeFrom={setFrom}
-      onChangeTo={setTo}
-      onChangeItems={setItems}
-      onAddItem={addItem}
-      onChangeNotes={setNotes}
-      onChangeLogo={setLogo}
+      businessId={form.settings.businessId}
+      paymentMethod={form.settings.paymentMethods.find((m) => m.isDefault)}
+      onChangeInvoiceNumber={form.setInvoiceNumber}
+      onChangeDate={form.setDate}
+      onChangeDueDate={form.setDueDate}
+      onChangeFrom={form.setFrom}
+      onChangeTo={form.setTo}
+      onChangeItems={form.setItems}
+      onAddItem={form.addItem}
+      onChangeNotes={form.setNotes}
+      onChangeLogo={form.setLogo}
     />
   );
 };

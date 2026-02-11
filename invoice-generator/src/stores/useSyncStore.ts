@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface SyncError {
   id: string;
@@ -9,12 +10,27 @@ export interface SyncError {
   entityId?: string;
 }
 
+export interface SyncQueueItem {
+  id: string;
+  type: 'client' | 'invoice' | 'settings' | 'activity';
+  operation: 'upsert' | 'delete';
+  entityId?: string;
+  payload: unknown;
+  userId: string;
+  retryCount: number;
+  createdAt: string;
+}
+
 interface SyncStore {
+  // Transient state (not persisted)
   isOnline: boolean;
   isSyncing: boolean;
   lastSyncAt: string | null;
   errors: SyncError[];
   pendingChanges: number;
+
+  // Persisted queue
+  queue: SyncQueueItem[];
 
   setOnline: (online: boolean) => void;
   setSyncing: (syncing: boolean) => void;
@@ -25,46 +41,88 @@ interface SyncStore {
   incrementPending: () => void;
   decrementPending: () => void;
   resetPending: () => void;
+
+  enqueue: (item: Omit<SyncQueueItem, 'id' | 'retryCount' | 'createdAt'>) => void;
+  dequeue: (id: string) => void;
+  incrementRetry: (id: string) => void;
 }
 
-export const useSyncStore = create<SyncStore>()((set) => ({
-  isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
-  isSyncing: false,
-  lastSyncAt: null,
-  errors: [],
-  pendingChanges: 0,
+const MAX_RETRIES = 5;
 
-  setOnline: (online) => set({ isOnline: online }),
-  setSyncing: (syncing) => set({ isSyncing: syncing }),
-  setLastSyncAt: (timestamp) => set({ lastSyncAt: timestamp }),
+export const useSyncStore = create<SyncStore>()(
+  persist(
+    (set) => ({
+      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+      isSyncing: false,
+      lastSyncAt: null,
+      errors: [],
+      pendingChanges: 0,
+      queue: [],
 
-  addError: (error) =>
-    set((state) => ({
-      errors: [
-        ...state.errors,
-        {
-          ...error,
-          id: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-        },
-      ].slice(-10), // Keep only last 10 errors
-    })),
+      setOnline: (online) => set({ isOnline: online }),
+      setSyncing: (syncing) => set({ isSyncing: syncing }),
+      setLastSyncAt: (timestamp) => set({ lastSyncAt: timestamp }),
 
-  clearError: (id) =>
-    set((state) => ({
-      errors: state.errors.filter((e) => e.id !== id),
-    })),
+      addError: (error) =>
+        set((state) => ({
+          errors: [
+            ...state.errors,
+            {
+              ...error,
+              id: crypto.randomUUID(),
+              timestamp: new Date().toISOString(),
+            },
+          ].slice(-10),
+        })),
 
-  clearAllErrors: () => set({ errors: [] }),
+      clearError: (id) =>
+        set((state) => ({
+          errors: state.errors.filter((e) => e.id !== id),
+        })),
 
-  incrementPending: () =>
-    set((state) => ({ pendingChanges: state.pendingChanges + 1 })),
+      clearAllErrors: () => set({ errors: [] }),
 
-  decrementPending: () =>
-    set((state) => ({ pendingChanges: Math.max(0, state.pendingChanges - 1) })),
+      incrementPending: () =>
+        set((state) => ({ pendingChanges: state.pendingChanges + 1 })),
 
-  resetPending: () => set({ pendingChanges: 0 }),
-}));
+      decrementPending: () =>
+        set((state) => ({ pendingChanges: Math.max(0, state.pendingChanges - 1) })),
+
+      resetPending: () => set({ pendingChanges: 0 }),
+
+      enqueue: (item) =>
+        set((state) => ({
+          queue: [
+            ...state.queue,
+            {
+              ...item,
+              id: crypto.randomUUID(),
+              retryCount: 0,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        })),
+
+      dequeue: (id) =>
+        set((state) => ({
+          queue: state.queue.filter((item) => item.id !== id),
+        })),
+
+      incrementRetry: (id) =>
+        set((state) => ({
+          queue: state.queue
+            .map((item) =>
+              item.id === id ? { ...item, retryCount: item.retryCount + 1 } : item
+            )
+            .filter((item) => item.retryCount <= MAX_RETRIES),
+        })),
+    }),
+    {
+      name: 'invoice-generator-v1:sync-queue',
+      partialize: (state) => ({ queue: state.queue }),
+    }
+  )
+);
 
 // Initialize online/offline listeners
 if (typeof window !== 'undefined') {
