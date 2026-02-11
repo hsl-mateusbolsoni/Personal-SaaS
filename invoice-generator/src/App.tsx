@@ -6,8 +6,7 @@ import { useDataSync } from './hooks/useDataSync';
 import { AppShell } from './components/layout/AppShell';
 import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
-import { InvoiceCreate } from './pages/InvoiceCreate';
-import { InvoiceEdit } from './pages/InvoiceEdit';
+import { InvoiceEditor } from './pages/InvoiceEditor';
 import { InvoicePreviewPage } from './pages/InvoicePreview';
 import { Clients } from './pages/Clients';
 import { BusinessDetails } from './pages/BusinessDetails';
@@ -43,8 +42,8 @@ function AppRoutes() {
       <AppShell>
         <Routes>
           <Route path="/" element={isFirstTime ? <Navigate to="/business" replace /> : <Dashboard />} />
-          <Route path="/invoices/new" element={<InvoiceCreate />} />
-          <Route path="/invoices/:id/edit" element={<InvoiceEdit />} />
+          <Route path="/invoices/new" element={<InvoiceEditor />} />
+          <Route path="/invoices/:id/edit" element={<InvoiceEditor />} />
           <Route path="/invoices/:id/preview" element={<InvoicePreviewPage />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/business" element={<BusinessDetails />} />

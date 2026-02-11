@@ -16,18 +16,16 @@ import {
   AlertDescription,
 } from '@chakra-ui/react';
 import { Plus } from 'phosphor-react';
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { MobileInvoiceSettings } from './MobileInvoiceSettings';
 import { MobileLineItem } from './MobileLineItem';
 import { LineItemModal } from './LineItemModal';
 import { ClientSelector } from '../../client/ClientSelector';
-import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { calculateInvoiceTotals, formatCurrency } from '../../../utils/currency';
-import { todayISO, futureDateISO } from '../../../utils/formatting';
+import { useInvoiceForm } from '../../../hooks/useInvoiceForm';
+import { formatCurrency } from '../../../utils/currency';
 import { validateInvoiceDraft, type ValidationErrors, getFieldError, hasErrors, getErrorMessages } from '../../../utils/validation';
-import type { Invoice, CompanyInfo, ClientInfo, LineItem, InvoiceVisibility } from '../../../types/invoice';
+import type { Invoice, LineItem, InvoiceVisibility } from '../../../types/invoice';
 import type { CurrencyCode } from '../../../types/currency';
-import type { Client } from '../../../types/client';
 
 interface MobileInvoiceFormProps {
   initial?: Invoice;
@@ -70,57 +68,30 @@ export const MobileInvoiceForm = ({
   onTotalChange,
   submitLabel = 'Create Invoice',
 }: MobileInvoiceFormProps) => {
-  const settings = useSettingsStore((s) => s.settings);
-  const appSettings = useSettingsStore((s) => s.appSettings);
+  const visibility: InvoiceVisibility = useMemo(() => ({
+    showLogo,
+    showBusinessId,
+    showBankDetails,
+    showTax,
+    showDiscount,
+    showNotes,
+  }), [showLogo, showBusinessId, showBankDetails, showTax, showDiscount, showNotes]);
 
+  const form = useInvoiceForm({
+    initial,
+    currency,
+    taxRate,
+    discount,
+    visibility,
+    onTotalChange,
+  });
+
+  // Mobile-specific UI state
   const { isOpen: isLineItemOpen, onOpen: openLineItem, onClose: closeLineItem } = useDisclosure();
   const [editingItem, setEditingItem] = useState<LineItem | null>(null);
   const [isNewItem, setIsNewItem] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [showErrors, setShowErrors] = useState(false);
-
-  const [invoiceNumber, setInvoiceNumber] = useState(
-    initial?.invoiceNumber || `${appSettings.invoiceNumberPrefix}${appSettings.nextInvoiceNumber.toString().padStart(3, '0')}`
-  );
-  const [date, setDate] = useState(initial?.date || todayISO());
-  const [dueDate, setDueDate] = useState(initial?.dueDate || futureDateISO(30));
-  const [from, setFrom] = useState<CompanyInfo>(
-    initial?.from || {
-      name: settings.name,
-      email: settings.email,
-      phone: settings.phone,
-      address: settings.address,
-    }
-  );
-  const [to, setTo] = useState<ClientInfo & { clientId?: string }>(
-    initial?.to || { name: '', email: '', phone: '', address: '' }
-  );
-  const [items, setItems] = useState<LineItem[]>(
-    initial?.items || []
-  );
-  const [notes, setNotes] = useState(initial?.metadata?.notes || '');
-
-  const totals = calculateInvoiceTotals(items, taxRate, discount);
-
-  useEffect(() => {
-    if (onTotalChange) {
-      onTotalChange(totals.totalCents);
-    }
-  }, [totals.totalCents, onTotalChange]);
-
-  const handleClientSelect = useCallback((client: Client | null) => {
-    if (client) {
-      setTo({
-        clientId: client.id,
-        name: client.name,
-        email: client.email,
-        phone: client.phone || '',
-        address: client.address || '',
-      });
-    } else {
-      setTo({ name: '', email: '', phone: '', address: '' });
-    }
-  }, []);
 
   const handleAddItem = () => {
     setEditingItem(null);
@@ -136,49 +107,19 @@ export const MobileInvoiceForm = ({
 
   const handleSaveItem = (item: LineItem) => {
     if (isNewItem) {
-      setItems((prev) => [...prev, item]);
+      form.setItems((prev) => [...prev, item]);
     } else {
-      setItems((prev) => prev.map((i) => (i.id === item.id ? item : i)));
+      form.updateItem(item.id, item);
     }
   };
 
-  const handleDeleteItem = (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-  };
-
-  const visibility: InvoiceVisibility = useMemo(() => ({
-    showLogo,
-    showBusinessId,
-    showBankDetails,
-    showTax,
-    showDiscount,
-    showNotes,
-  }), [showLogo, showBusinessId, showBankDetails, showTax, showDiscount, showNotes]);
-
-  const getDraft = useCallback((): Partial<Invoice> => ({
-    ...(initial?.id ? { id: initial.id } : {}),
-    invoiceNumber,
-    date,
-    dueDate,
-    currency,
-    from,
-    to,
-    items,
-    taxRate,
-    discount,
-    visibility,
-    metadata: notes ? { notes } : undefined,
-    ...totals,
-  }), [invoiceNumber, date, dueDate, currency, from, to, items, taxRate, discount, visibility, notes, totals, initial?.id]);
-
   const handleSubmit = () => {
-    const draft = getDraft();
+    const draft = form.toDraft();
     const result = validateInvoiceDraft(draft);
 
     if (!result.success) {
       setErrors(result.errors);
       setShowErrors(true);
-      // Scroll to top to show error alert
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -224,8 +165,8 @@ export const MobileInvoiceForm = ({
               <FormLabel fontSize="sm">Invoice Number</FormLabel>
               <Input
                 size="sm"
-                value={invoiceNumber}
-                onChange={(e) => setInvoiceNumber(e.target.value)}
+                value={form.invoiceNumber}
+                onChange={(e) => form.setInvoiceNumber(e.target.value)}
               />
               <FormErrorMessage fontSize="xs">{getFieldError(errors, 'invoiceNumber')}</FormErrorMessage>
             </FormControl>
@@ -235,8 +176,8 @@ export const MobileInvoiceForm = ({
                 <Input
                   type="date"
                   size="sm"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  value={form.date}
+                  onChange={(e) => form.setDate(e.target.value)}
                 />
                 <FormErrorMessage fontSize="xs">{getFieldError(errors, 'date')}</FormErrorMessage>
               </FormControl>
@@ -245,8 +186,8 @@ export const MobileInvoiceForm = ({
                 <Input
                   type="date"
                   size="sm"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
+                  value={form.dueDate}
+                  onChange={(e) => form.setDueDate(e.target.value)}
                 />
                 <FormErrorMessage fontSize="xs">{getFieldError(errors, 'dueDate')}</FormErrorMessage>
               </FormControl>
@@ -262,8 +203,8 @@ export const MobileInvoiceForm = ({
               <FormLabel fontSize="sm">Business Name</FormLabel>
               <Input
                 size="sm"
-                value={from.name}
-                onChange={(e) => setFrom({ ...from, name: e.target.value })}
+                value={form.from.name}
+                onChange={(e) => form.setFrom({ ...form.from, name: e.target.value })}
               />
               <FormErrorMessage fontSize="xs">{getFieldError(errors, 'from.name')}</FormErrorMessage>
             </FormControl>
@@ -273,8 +214,8 @@ export const MobileInvoiceForm = ({
                 type="email"
                 size="sm"
                 inputMode="email"
-                value={from.email}
-                onChange={(e) => setFrom({ ...from, email: e.target.value })}
+                value={form.from.email}
+                onChange={(e) => form.setFrom({ ...form.from, email: e.target.value })}
               />
               <FormErrorMessage fontSize="xs">{getFieldError(errors, 'from.email')}</FormErrorMessage>
             </FormControl>
@@ -284,8 +225,8 @@ export const MobileInvoiceForm = ({
                 type="tel"
                 size="sm"
                 inputMode="tel"
-                value={from.phone}
-                onChange={(e) => setFrom({ ...from, phone: e.target.value })}
+                value={form.from.phone}
+                onChange={(e) => form.setFrom({ ...form.from, phone: e.target.value })}
               />
             </FormControl>
             <FormControl>
@@ -293,8 +234,8 @@ export const MobileInvoiceForm = ({
               <Textarea
                 size="sm"
                 rows={2}
-                value={from.address}
-                onChange={(e) => setFrom({ ...from, address: e.target.value })}
+                value={form.from.address}
+                onChange={(e) => form.setFrom({ ...form.from, address: e.target.value })}
               />
             </FormControl>
           </VStack>
@@ -307,8 +248,8 @@ export const MobileInvoiceForm = ({
             <FormControl>
               <FormLabel fontSize="sm">Select Client</FormLabel>
               <ClientSelector
-                value={to.clientId}
-                onChange={handleClientSelect}
+                value={form.to.clientId}
+                onChange={form.selectClient}
               />
             </FormControl>
             <Divider />
@@ -316,8 +257,8 @@ export const MobileInvoiceForm = ({
               <FormLabel fontSize="sm">Client Name</FormLabel>
               <Input
                 size="sm"
-                value={to.name}
-                onChange={(e) => setTo({ ...to, name: e.target.value })}
+                value={form.to.name}
+                onChange={(e) => form.setTo({ ...form.to, name: e.target.value })}
               />
               <FormErrorMessage fontSize="xs">{getFieldError(errors, 'to.name')}</FormErrorMessage>
             </FormControl>
@@ -327,8 +268,8 @@ export const MobileInvoiceForm = ({
                 type="email"
                 size="sm"
                 inputMode="email"
-                value={to.email}
-                onChange={(e) => setTo({ ...to, email: e.target.value })}
+                value={form.to.email}
+                onChange={(e) => form.setTo({ ...form.to, email: e.target.value })}
               />
               <FormErrorMessage fontSize="xs">{getFieldError(errors, 'to.email')}</FormErrorMessage>
             </FormControl>
@@ -338,8 +279,8 @@ export const MobileInvoiceForm = ({
                 type="tel"
                 size="sm"
                 inputMode="tel"
-                value={to.phone}
-                onChange={(e) => setTo({ ...to, phone: e.target.value })}
+                value={form.to.phone}
+                onChange={(e) => form.setTo({ ...form.to, phone: e.target.value })}
               />
             </FormControl>
             <FormControl>
@@ -347,8 +288,8 @@ export const MobileInvoiceForm = ({
               <Textarea
                 size="sm"
                 rows={2}
-                value={to.address}
-                onChange={(e) => setTo({ ...to, address: e.target.value })}
+                value={form.to.address}
+                onChange={(e) => form.setTo({ ...form.to, address: e.target.value })}
               />
             </FormControl>
           </VStack>
@@ -368,7 +309,7 @@ export const MobileInvoiceForm = ({
             </Button>
           </HStack>
 
-          {items.length === 0 ? (
+          {form.items.length === 0 ? (
             <Box
               py={8}
               textAlign="center"
@@ -383,13 +324,13 @@ export const MobileInvoiceForm = ({
             </Box>
           ) : (
             <VStack spacing={3} align="stretch">
-              {items.map((item) => (
+              {form.items.map((item) => (
                 <MobileLineItem
                   key={item.id}
                   item={item}
                   currency={currency}
                   onEdit={() => handleEditItem(item)}
-                  onDelete={() => handleDeleteItem(item.id)}
+                  onDelete={() => form.removeItem(item.id)}
                 />
               ))}
             </VStack>
@@ -402,8 +343,8 @@ export const MobileInvoiceForm = ({
           <Textarea
             size="sm"
             rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            value={form.notes}
+            onChange={(e) => form.setNotes(e.target.value)}
             placeholder="Additional notes for the client..."
           />
         </Box>
@@ -414,27 +355,27 @@ export const MobileInvoiceForm = ({
           <VStack spacing={2} align="stretch">
             <HStack justify="space-between">
               <Text fontSize="sm" color="brand.500">Subtotal</Text>
-              <Text fontSize="sm">{formatCurrency(totals.subtotalCents, currency)}</Text>
+              <Text fontSize="sm">{formatCurrency(form.totals.subtotalCents, currency)}</Text>
             </HStack>
-            {showDiscount && totals.discountAmountCents > 0 && (
+            {showDiscount && form.totals.discountAmountCents > 0 && (
               <HStack justify="space-between">
                 <Text fontSize="sm" color="brand.500">Discount</Text>
                 <Text fontSize="sm" color="success.600">
-                  -{formatCurrency(totals.discountAmountCents, currency)}
+                  -{formatCurrency(form.totals.discountAmountCents, currency)}
                 </Text>
               </HStack>
             )}
-            {showTax && totals.taxAmountCents > 0 && (
+            {showTax && form.totals.taxAmountCents > 0 && (
               <HStack justify="space-between">
                 <Text fontSize="sm" color="brand.500">Tax ({taxRate}%)</Text>
-                <Text fontSize="sm">{formatCurrency(totals.taxAmountCents, currency)}</Text>
+                <Text fontSize="sm">{formatCurrency(form.totals.taxAmountCents, currency)}</Text>
               </HStack>
             )}
             <Divider />
             <HStack justify="space-between">
               <Text fontWeight="600">Total</Text>
               <Text fontWeight="700" fontSize="lg" color="accent.600">
-                {formatCurrency(totals.totalCents, currency)}
+                {formatCurrency(form.totals.totalCents, currency)}
               </Text>
             </HStack>
           </VStack>

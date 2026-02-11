@@ -7,6 +7,7 @@ import type { VisibilitySettings } from '../components/invoice/WYSIWYGEditor';
 import { EditorSidebar } from '../components/invoice/EditorSidebar';
 import { MobileInvoiceForm } from '../components/invoice/MobileInvoiceForm';
 import { StickyInvoiceFooter } from '../components/invoice/StickyInvoiceFooter';
+import { useInvoiceActions } from '../hooks/useInvoiceActions';
 import { useInvoiceStore } from '../stores/useInvoiceStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { calculateInvoiceTotals } from '../utils/currency';
@@ -15,11 +16,14 @@ import { ROUTES } from '../config/routes';
 import type { Invoice } from '../types/invoice';
 import type { CurrencyCode } from '../types/currency';
 
-export const InvoiceEdit = () => {
+export const InvoiceEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const invoice = useInvoiceStore((s) => s.invoices.find((i) => i.id === id));
+  const isEdit = !!id;
+
+  const invoice = useInvoiceStore((s) => isEdit ? s.invoices.find((i) => i.id === id) : undefined);
   const updateInvoice = useInvoiceStore((s) => s.updateInvoice);
+  const { create } = useInvoiceActions();
   const settings = useSettingsStore((s) => s.settings);
   const appSettings = useSettingsStore((s) => s.appSettings);
   const submitRef = useRef<(() => void) | null>(null);
@@ -40,7 +44,6 @@ export const InvoiceEdit = () => {
   const [taxRate, setTaxRate] = useState(invoice?.taxRate ?? appSettings.defaultTaxRate);
   const [discount, setDiscount] = useState<Invoice['discount']>(invoice?.discount || null);
   const [visibility, setVisibility] = useState<VisibilitySettings>(() => {
-    // Use saved visibility from invoice if available, otherwise derive from data
     if (invoice?.visibility) {
       return invoice.visibility;
     }
@@ -66,7 +69,7 @@ export const InvoiceEdit = () => {
     setVisibility((v) => ({ ...v, showDiscount: show }));
   };
 
-  if (!invoice) {
+  if (isEdit && !invoice) {
     return (
       <Box maxW="1400px" mx="auto" px={{ base: 4, md: 8 }} py={8}>
         <Text>Invoice not found.</Text>
@@ -75,11 +78,21 @@ export const InvoiceEdit = () => {
   }
 
   const handleSubmit = (draft: Partial<Invoice>) => {
-    const totals = calculateInvoiceTotals(draft.items || [], draft.taxRate || 0, draft.discount || null);
-    updateInvoice(invoice.id, { ...draft, ...totals });
-    toast.success({ title: 'Invoice updated' });
-    navigate(ROUTES.INVOICE_PREVIEW(invoice.id));
+    if (isEdit && invoice) {
+      const totals = calculateInvoiceTotals(draft.items || [], draft.taxRate || 0, draft.discount || null);
+      updateInvoice(invoice.id, { ...draft, ...totals });
+      toast.success({ title: 'Invoice updated' });
+      navigate(ROUTES.INVOICE_PREVIEW(invoice.id));
+    } else {
+      create(draft);
+    }
   };
+
+  const title = isEdit ? 'Edit Invoice' : 'New Invoice';
+  const submitLabel = isEdit ? 'Save Changes' : 'Create Invoice';
+  const backPath = isEdit && invoice
+    ? ROUTES.INVOICE_PREVIEW(invoice.id)
+    : ROUTES.DASHBOARD;
 
   return (
     <>
@@ -87,9 +100,9 @@ export const InvoiceEdit = () => {
       <Box display={{ base: 'block', lg: 'none' }}>
         <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
           <PageHeader
-            title="Edit Invoice"
-            subtitle="Update the details below"
-            backPath={ROUTES.INVOICE_PREVIEW(invoice.id)}
+            title={title}
+            subtitle={isEdit ? 'Update the details below' : 'Fill in the details below'}
+            backPath={backPath}
           />
           <MobileInvoiceForm
             initial={invoice}
@@ -109,7 +122,7 @@ export const InvoiceEdit = () => {
             showNotes={visibility.showNotes}
             onSubmit={handleSubmit}
             onTotalChange={setTotalCents}
-            submitLabel="Save Changes"
+            submitLabel={submitLabel}
           />
         </Box>
       </Box>
@@ -118,9 +131,9 @@ export const InvoiceEdit = () => {
       <Box display={{ base: 'none', lg: 'block' }}>
         <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
           <PageHeader
-            title="Edit Invoice"
+            title={title}
             subtitle="Click any text to edit inline"
-            backPath={ROUTES.INVOICE_PREVIEW(invoice.id)}
+            backPath={backPath}
           />
 
           <Grid templateColumns="1fr 320px" gap={6}>
@@ -166,7 +179,7 @@ export const InvoiceEdit = () => {
           totalCents={totalCents}
           currency={currency}
           onSubmit={() => submitRef.current?.()}
-          submitLabel="Save Changes"
+          submitLabel={submitLabel}
         />
       </Box>
     </>

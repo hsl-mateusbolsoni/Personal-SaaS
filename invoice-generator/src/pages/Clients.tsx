@@ -6,8 +6,8 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { ClientList } from '../components/client/ClientList';
 import { ClientDrawer } from '../components/client/ClientDrawer';
 import { useClientStore } from '../stores/useClientStore';
-import { clientService } from '../services';
 import { toast } from '../utils/toast';
+import type { Client } from '../types/client';
 
 export const Clients = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -15,12 +15,20 @@ export const Clients = () => {
   const clients = useClientStore((s) => s.clients);
   const editClient = clients.find((c) => c.id === editId) || null;
 
-  const handleSubmit = async (data: { name: string; email: string; phone: string; address: string }) => {
+  const handleSubmit = (data: { name: string; email: string; phone: string; address: string }) => {
+    const store = useClientStore.getState();
     if (editId) {
-      await clientService.updateClient(editId, data);
+      store.updateClient(editId, data);
       toast.success({ title: 'Client updated' });
     } else {
-      await clientService.createClient(data);
+      const client: Client = {
+        id: crypto.randomUUID(),
+        ...data,
+        createdAt: new Date().toISOString(),
+        lastUsed: new Date().toISOString(),
+        invoiceCount: 0,
+      };
+      store.addClient(client);
       toast.success({ title: 'Client added' });
     }
     setEditId(null);
