@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { CompanySettings, AppSettings } from '../types/settings';
 import type { PaymentMethod } from '../types/payment';
 import { DEFAULT_SETTINGS, DEFAULT_APP_SETTINGS } from '../config/defaults';
+import { syncCompanySettingsOnChange, syncAppSettingsOnChange } from '../lib/sync-helper';
 
 interface SettingsStore {
   settings: CompanySettings;
@@ -26,66 +27,93 @@ export const useSettingsStore = create<SettingsStore>()(
       appSettings: DEFAULT_APP_SETTINGS,
       isFirstTime: true,
 
-      updateSettings: (updates) => set((state) => ({
-        settings: { ...state.settings, ...updates },
-      })),
+      updateSettings: (updates) => {
+        set((state) => ({
+          settings: { ...state.settings, ...updates },
+        }));
+        const state = useSettingsStore.getState();
+        syncCompanySettingsOnChange(state.settings);
+      },
 
-      updateAppSettings: (updates) => set((state) => ({
-        appSettings: { ...state.appSettings, ...updates },
-      })),
+      updateAppSettings: (updates) => {
+        set((state) => ({
+          appSettings: { ...state.appSettings, ...updates },
+        }));
+        const state = useSettingsStore.getState();
+        syncAppSettingsOnChange(state.appSettings);
+      },
 
-      addPaymentMethod: (method) => set((state) => {
-        const isFirst = state.settings.paymentMethods.length === 0;
-        return {
+      addPaymentMethod: (method) => {
+        set((state) => {
+          const isFirst = state.settings.paymentMethods.length === 0;
+          return {
+            settings: {
+              ...state.settings,
+              paymentMethods: [
+                ...state.settings.paymentMethods,
+                { ...method, isDefault: isFirst ? true : method.isDefault },
+              ],
+            },
+          };
+        });
+        const state = useSettingsStore.getState();
+        syncCompanySettingsOnChange(state.settings);
+      },
+
+      updatePaymentMethod: (id, updates) => {
+        set((state) => ({
           settings: {
             ...state.settings,
-            paymentMethods: [
-              ...state.settings.paymentMethods,
-              { ...method, isDefault: isFirst ? true : method.isDefault },
-            ],
+            paymentMethods: state.settings.paymentMethods.map((m) =>
+              m.id === id ? { ...m, ...updates } : m
+            ),
           },
-        };
-      }),
+        }));
+        const state = useSettingsStore.getState();
+        syncCompanySettingsOnChange(state.settings);
+      },
 
-      updatePaymentMethod: (id, updates) => set((state) => ({
-        settings: {
-          ...state.settings,
-          paymentMethods: state.settings.paymentMethods.map((m) =>
-            m.id === id ? { ...m, ...updates } : m
-          ),
-        },
-      })),
+      removePaymentMethod: (id) => {
+        set((state) => {
+          const filtered = state.settings.paymentMethods.filter((m) => m.id !== id);
+          if (filtered.length > 0 && !filtered.some((m) => m.isDefault)) {
+            filtered[0].isDefault = true;
+          }
+          return {
+            settings: {
+              ...state.settings,
+              paymentMethods: filtered,
+            },
+          };
+        });
+        const state = useSettingsStore.getState();
+        syncCompanySettingsOnChange(state.settings);
+      },
 
-      removePaymentMethod: (id) => set((state) => {
-        const filtered = state.settings.paymentMethods.filter((m) => m.id !== id);
-        // If we removed the default, make the first one default
-        if (filtered.length > 0 && !filtered.some((m) => m.isDefault)) {
-          filtered[0].isDefault = true;
-        }
-        return {
+      setDefaultPaymentMethod: (id) => {
+        set((state) => ({
           settings: {
             ...state.settings,
-            paymentMethods: filtered,
+            paymentMethods: state.settings.paymentMethods.map((m) => ({
+              ...m,
+              isDefault: m.id === id,
+            })),
           },
-        };
-      }),
+        }));
+        const state = useSettingsStore.getState();
+        syncCompanySettingsOnChange(state.settings);
+      },
 
-      setDefaultPaymentMethod: (id) => set((state) => ({
-        settings: {
-          ...state.settings,
-          paymentMethods: state.settings.paymentMethods.map((m) => ({
-            ...m,
-            isDefault: m.id === id,
-          })),
-        },
-      })),
-
-      incrementInvoiceNumber: () => set((state) => ({
-        appSettings: {
-          ...state.appSettings,
-          nextInvoiceNumber: state.appSettings.nextInvoiceNumber + 1,
-        },
-      })),
+      incrementInvoiceNumber: () => {
+        set((state) => ({
+          appSettings: {
+            ...state.appSettings,
+            nextInvoiceNumber: state.appSettings.nextInvoiceNumber + 1,
+          },
+        }));
+        const state = useSettingsStore.getState();
+        syncAppSettingsOnChange(state.appSettings);
+      },
 
       markSetupComplete: () => set({ isFirstTime: false }),
 

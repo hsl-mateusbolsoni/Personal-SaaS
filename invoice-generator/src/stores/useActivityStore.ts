@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ActivityLog, ActivityType } from '../types/activity';
+import { syncActivityOnChange } from '../lib/sync-helper';
 
 interface ActivityStore {
   activities: ActivityLog[];
@@ -28,6 +29,7 @@ export const useActivityStore = create<ActivityStore>()(
         set((state) => ({
           activities: [activity, ...state.activities],
         }));
+        syncActivityOnChange(activity);
       },
 
       getActivitiesForInvoice: (invoiceId) => {

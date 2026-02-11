@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ChakraProvider } from '@chakra-ui/react';
 import { theme } from './theme';
 import { AuthProvider } from './contexts/AuthContext';
+import { useDataSync } from './hooks/useDataSync';
 import { AppShell } from './components/layout/AppShell';
 import { Dashboard } from './pages/Dashboard';
 import { InvoiceCreate } from './pages/InvoiceCreate';
@@ -12,15 +13,21 @@ import { BusinessDetails } from './pages/BusinessDetails';
 import { Settings } from './pages/Settings';
 import { useSettingsStore } from './stores/useSettingsStore';
 
+function DataSyncProvider({ children }: { children: React.ReactNode }) {
+  useDataSync();
+  return <>{children}</>;
+}
+
 function App() {
   const isFirstTime = useSettingsStore((s) => s.isFirstTime);
 
   return (
     <ChakraProvider theme={theme}>
       <AuthProvider>
-        <HashRouter>
-          <AppShell>
-            <Routes>
+        <DataSyncProvider>
+          <HashRouter>
+            <AppShell>
+              <Routes>
               <Route path="/" element={isFirstTime ? <Navigate to="/business" replace /> : <Dashboard />} />
               <Route path="/invoices/new" element={<InvoiceCreate />} />
               <Route path="/invoices/:id/edit" element={<InvoiceEdit />} />
@@ -29,8 +36,9 @@ function App() {
               <Route path="/business" element={<BusinessDetails />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>
-          </AppShell>
-        </HashRouter>
+            </AppShell>
+          </HashRouter>
+        </DataSyncProvider>
       </AuthProvider>
     </ChakraProvider>
   );
