@@ -39,13 +39,19 @@ export const InvoiceEdit = () => {
   const [currency, setCurrency] = useState<CurrencyCode>(invoice?.currency || appSettings.defaultCurrency);
   const [taxRate, setTaxRate] = useState(invoice?.taxRate ?? appSettings.defaultTaxRate);
   const [discount, setDiscount] = useState<Invoice['discount']>(invoice?.discount || null);
-  const [visibility, setVisibility] = useState<VisibilitySettings>({
-    showLogo: true,
-    showBusinessId: !!settings.businessId,
-    showBankDetails: !!hasPaymentMethod,
-    showTax: (invoice?.taxRate ?? appSettings.defaultTaxRate) > 0,
-    showDiscount: !!invoice?.discount,
-    showNotes: !!invoice?.metadata?.notes,
+  const [visibility, setVisibility] = useState<VisibilitySettings>(() => {
+    // Use saved visibility from invoice if available, otherwise derive from data
+    if (invoice?.visibility) {
+      return invoice.visibility;
+    }
+    return {
+      showLogo: true,
+      showBusinessId: !!settings.businessId,
+      showBankDetails: !!hasPaymentMethod,
+      showTax: (invoice?.taxRate ?? appSettings.defaultTaxRate) > 0,
+      showDiscount: !!invoice?.discount,
+      showNotes: !!invoice?.metadata?.notes,
+    };
   });
 
   const handleAddItem = useCallback(() => {
@@ -97,6 +103,10 @@ export const InvoiceEdit = () => {
             onShowTaxChange={handleShowTaxChange}
             showDiscount={visibility.showDiscount}
             onShowDiscountChange={handleShowDiscountChange}
+            showLogo={visibility.showLogo}
+            showBusinessId={visibility.showBusinessId}
+            showBankDetails={visibility.showBankDetails}
+            showNotes={visibility.showNotes}
             onSubmit={handleSubmit}
             onTotalChange={setTotalCents}
             submitLabel="Save Changes"

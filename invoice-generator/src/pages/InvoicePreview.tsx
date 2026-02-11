@@ -115,6 +115,7 @@ export const InvoicePreviewPage = () => {
           invoice={invoice}
           businessId={settings.businessId}
           paymentMethod={settings.paymentMethods.find((m) => m.isDefault)}
+          visibility={invoice.visibility}
         />
       </Box>
 

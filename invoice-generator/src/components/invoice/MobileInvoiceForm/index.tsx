@@ -16,7 +16,7 @@ import {
   AlertDescription,
 } from '@chakra-ui/react';
 import { Plus } from 'phosphor-react';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { MobileInvoiceSettings } from './MobileInvoiceSettings';
 import { MobileLineItem } from './MobileLineItem';
 import { LineItemModal } from './LineItemModal';
@@ -25,7 +25,7 @@ import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { calculateInvoiceTotals, formatCurrency } from '../../../utils/currency';
 import { todayISO, futureDateISO } from '../../../utils/formatting';
 import { validateInvoiceDraft, type ValidationErrors, getFieldError, hasErrors, getErrorMessages } from '../../../utils/validation';
-import type { Invoice, CompanyInfo, ClientInfo, LineItem } from '../../../types/invoice';
+import type { Invoice, CompanyInfo, ClientInfo, LineItem, InvoiceVisibility } from '../../../types/invoice';
 import type { CurrencyCode } from '../../../types/currency';
 import type { Client } from '../../../types/client';
 
@@ -41,6 +41,10 @@ interface MobileInvoiceFormProps {
   onShowTaxChange: (show: boolean) => void;
   showDiscount: boolean;
   onShowDiscountChange: (show: boolean) => void;
+  showLogo?: boolean;
+  showBusinessId?: boolean;
+  showBankDetails?: boolean;
+  showNotes?: boolean;
   onSubmit: (draft: Partial<Invoice>) => void;
   onTotalChange?: (total: number) => void;
   submitLabel?: string;
@@ -58,6 +62,10 @@ export const MobileInvoiceForm = ({
   onShowTaxChange,
   showDiscount,
   onShowDiscountChange,
+  showLogo = true,
+  showBusinessId = true,
+  showBankDetails = true,
+  showNotes = true,
   onSubmit,
   onTotalChange,
   submitLabel = 'Create Invoice',
@@ -138,6 +146,15 @@ export const MobileInvoiceForm = ({
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
+  const visibility: InvoiceVisibility = useMemo(() => ({
+    showLogo,
+    showBusinessId,
+    showBankDetails,
+    showTax,
+    showDiscount,
+    showNotes,
+  }), [showLogo, showBusinessId, showBankDetails, showTax, showDiscount, showNotes]);
+
   const getDraft = useCallback((): Partial<Invoice> => ({
     ...(initial?.id ? { id: initial.id } : {}),
     invoiceNumber,
@@ -149,9 +166,10 @@ export const MobileInvoiceForm = ({
     items,
     taxRate,
     discount,
+    visibility,
     metadata: notes ? { notes } : undefined,
     ...totals,
-  }), [invoiceNumber, date, dueDate, currency, from, to, items, taxRate, discount, notes, totals, initial?.id]);
+  }), [invoiceNumber, date, dueDate, currency, from, to, items, taxRate, discount, visibility, notes, totals, initial?.id]);
 
   const handleSubmit = () => {
     const draft = getDraft();

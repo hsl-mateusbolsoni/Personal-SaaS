@@ -3,6 +3,16 @@ import { z } from 'zod';
 // Helper for optional email (empty string or valid email)
 const optionalEmail = z.string().email('Invalid email').or(z.literal(''));
 
+// Visibility settings schema
+export const VisibilitySchema = z.object({
+  showLogo: z.boolean(),
+  showBusinessId: z.boolean(),
+  showBankDetails: z.boolean(),
+  showTax: z.boolean(),
+  showDiscount: z.boolean(),
+  showNotes: z.boolean(),
+});
+
 export const LineItemSchema = z.object({
   id: z.string(),
   description: z.string().min(1, 'Description is required').max(200),
@@ -49,6 +59,7 @@ export const InvoiceSchema = z.object({
   taxRate: z.number().min(0).max(100),
   taxAmountCents: z.number(),
   totalCents: z.number(),
+  visibility: VisibilitySchema.optional(),
   metadata: z.any().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -88,6 +99,7 @@ export const InvoiceDraftSchema = z.object({
     type: z.enum(['percentage', 'fixed']),
     value: z.number().min(0),
   }).nullable(),
+  visibility: VisibilitySchema.optional(),
 }).refine(
   (data) => {
     if (!data.date || !data.dueDate) return true;

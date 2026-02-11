@@ -1,18 +1,34 @@
 import { Box, Flex, Text, Image } from '@chakra-ui/react';
 import { formatCurrency } from '../../utils/currency';
 import { PAYMENT_TYPE_LABELS, getPaymentMethodSummary } from '../../types/payment';
-import type { Invoice } from '../../types/invoice';
+import type { Invoice, InvoiceVisibility } from '../../types/invoice';
 import type { PaymentMethod } from '../../types/payment';
+
+const DEFAULT_VISIBILITY: InvoiceVisibility = {
+  showLogo: true,
+  showBusinessId: true,
+  showBankDetails: true,
+  showTax: true,
+  showDiscount: true,
+  showNotes: true,
+};
 
 interface InvoiceCanvasProps {
   invoice: Invoice;
   businessId?: string;
   paymentMethod?: PaymentMethod;
   logo?: string | null;
+  visibility?: InvoiceVisibility;
 }
 
-export const InvoiceCanvas = ({ invoice, businessId, paymentMethod, logo }: InvoiceCanvasProps) => {
-  const hasPaymentDetails = paymentMethod && (
+export const InvoiceCanvas = ({ invoice, businessId, paymentMethod, logo, visibility: visibilityProp }: InvoiceCanvasProps) => {
+  // Merge visibility settings with defaults to ensure all properties exist
+  const visibility: InvoiceVisibility = {
+    ...DEFAULT_VISIBILITY,
+    ...(invoice.visibility || visibilityProp || {}),
+  };
+
+  const hasPaymentDetails = visibility.showBankDetails && paymentMethod && (
     paymentMethod.bankTransfer?.bankName ||
     paymentMethod.bankTransfer?.accountNumber ||
     paymentMethod.pix?.pixKey ||
@@ -41,7 +57,7 @@ export const InvoiceCanvas = ({ invoice, businessId, paymentMethod, logo }: Invo
         <Flex justify="space-between" mb={6}>
           {/* Company Info */}
           <Box>
-            {logo && (
+            {visibility.showLogo && logo && (
               <Image
                 src={logo}
                 alt="Logo"
@@ -54,7 +70,7 @@ export const InvoiceCanvas = ({ invoice, businessId, paymentMethod, logo }: Invo
             <Text fontSize="14pt" fontWeight="700" color="#111">
               {invoice.from.name}
             </Text>
-            {businessId && (
+            {visibility.showBusinessId && businessId && (
               <Text fontSize="8pt" color="#888" mt="2px">{businessId}</Text>
             )}
             <Text fontSize="8pt" color="#555" mt={2}>{invoice.from.email}</Text>
@@ -162,14 +178,14 @@ export const InvoiceCanvas = ({ invoice, businessId, paymentMethod, logo }: Invo
               <Text>{formatCurrency(invoice.subtotalCents, invoice.currency)}</Text>
             </Flex>
 
-            {invoice.discount && invoice.discountAmountCents > 0 && (
+            {visibility.showDiscount && invoice.discount && invoice.discountAmountCents > 0 && (
               <Flex justify="space-between" fontSize="8pt" color="#16a34a" py="3px">
                 <Text>Discount{invoice.discount.type === 'percentage' ? ` ${invoice.discount.value}%` : ''}</Text>
                 <Text>-{formatCurrency(invoice.discountAmountCents, invoice.currency)}</Text>
               </Flex>
             )}
 
-            {invoice.taxRate > 0 && (
+            {visibility.showTax && invoice.taxRate > 0 && (
               <Flex justify="space-between" fontSize="8pt" color="#555" py="3px">
                 <Text>Tax {invoice.taxRate}%</Text>
                 <Text>{formatCurrency(invoice.taxAmountCents, invoice.currency)}</Text>
@@ -192,7 +208,7 @@ export const InvoiceCanvas = ({ invoice, businessId, paymentMethod, logo }: Invo
         </Flex>
 
         {/* Notes */}
-        {invoice.metadata?.notes && (
+        {visibility.showNotes && invoice.metadata?.notes && (
           <Box mt={4} pt={3} borderTop="1px solid #eee">
             <Text fontSize="8pt" color="#888" textTransform="uppercase" letterSpacing="0.05em" mb={1}>
               Notes

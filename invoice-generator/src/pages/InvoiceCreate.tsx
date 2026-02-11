@@ -75,6 +75,10 @@ export const InvoiceCreate = () => {
             onShowTaxChange={handleShowTaxChange}
             showDiscount={visibility.showDiscount}
             onShowDiscountChange={handleShowDiscountChange}
+            showLogo={visibility.showLogo}
+            showBusinessId={visibility.showBusinessId}
+            showBankDetails={visibility.showBankDetails}
+            showNotes={visibility.showNotes}
             onSubmit={(draft) => create(draft)}
             onTotalChange={setTotalCents}
             submitLabel="Create Invoice"

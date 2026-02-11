@@ -1,15 +1,25 @@
 import { Document, Page, Text, View, StyleSheet, Font, pdf } from '@react-pdf/renderer';
-import type { Invoice } from '../../types/invoice';
+import type { Invoice, InvoiceVisibility } from '../../types/invoice';
 import type { BankDetails, PaymentType } from '../../types/settings';
 import { formatCurrency } from '../../utils/currency';
 import { PAYMENT_TYPE_LABELS } from '../../config/payments';
 
+const DEFAULT_VISIBILITY: InvoiceVisibility = {
+  showLogo: true,
+  showBusinessId: true,
+  showBankDetails: true,
+  showTax: true,
+  showDiscount: true,
+  showNotes: true,
+};
+
+// Register Inter font (more reliable CDN)
 Font.register({
-  family: 'Manrope',
+  family: 'Inter',
   fonts: [
-    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggexSg.ttf', fontWeight: 400 },
-    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggOxSuXd.ttf', fontWeight: 600 },
-    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggCxSuXd.ttf', fontWeight: 700 },
+    { src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff2', fontWeight: 400 },
+    { src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-600-normal.woff2', fontWeight: 600 },
+    { src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff2', fontWeight: 700 },
   ],
 });
 
@@ -17,7 +27,7 @@ Font.register({
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: 'Manrope',
+    fontFamily: 'Inter',
     color: '#333',
     display: 'flex',
     flexDirection: 'column',
@@ -126,10 +136,17 @@ interface InvoicePDFProps {
   businessId?: string;
   paymentType?: PaymentType;
   bankDetails?: BankDetails;
+  visibility?: InvoiceVisibility;
 }
 
-export const InvoicePDF = ({ invoice, businessId, paymentType, bankDetails }: InvoicePDFProps) => {
-  const hasBankDetails = bankDetails && (
+export const InvoicePDF = ({ invoice, businessId, paymentType, bankDetails, visibility: visibilityProp }: InvoicePDFProps) => {
+  // Merge visibility settings with defaults to ensure all properties exist
+  const visibility: InvoiceVisibility = {
+    ...DEFAULT_VISIBILITY,
+    ...(invoice.visibility || visibilityProp || {}),
+  };
+
+  const hasBankDetails = visibility.showBankDetails && bankDetails && (
     bankDetails.bankName ||
     bankDetails.accountNumber ||
     bankDetails.iban
@@ -144,7 +161,7 @@ export const InvoicePDF = ({ invoice, businessId, paymentType, bankDetails }: In
           <View style={styles.header}>
             <View>
               <Text style={styles.textL}>{invoice.from.name}</Text>
-              {businessId && (
+              {visibility.showBusinessId && businessId && (
                 <Text style={styles.textMuted}>{businessId}</Text>
               )}
               <Text style={[styles.text, { marginTop: 8 }]}>{invoice.from.email}</Text>
@@ -210,7 +227,7 @@ export const InvoicePDF = ({ invoice, businessId, paymentType, bankDetails }: In
                 <Text style={{ fontSize: 8, color: '#555' }}>Subtotal</Text>
                 <Text style={{ fontSize: 8, color: '#555' }}>{formatCurrency(invoice.subtotalCents, invoice.currency)}</Text>
               </View>
-              {invoice.discount && invoice.discountAmountCents > 0 && (
+              {visibility.showDiscount && invoice.discount && invoice.discountAmountCents > 0 && (
                 <View style={styles.totalRow}>
                   <Text style={styles.discountText}>
                     Discount{invoice.discount.type === 'percentage' ? ` ${invoice.discount.value}%` : ''}
@@ -218,7 +235,7 @@ export const InvoicePDF = ({ invoice, businessId, paymentType, bankDetails }: In
                   <Text style={styles.discountText}>-{formatCurrency(invoice.discountAmountCents, invoice.currency)}</Text>
                 </View>
               )}
-              {invoice.taxRate > 0 && (
+              {visibility.showTax && invoice.taxRate > 0 && (
                 <View style={styles.totalRow}>
                   <Text style={{ fontSize: 8, color: '#555' }}>Tax {invoice.taxRate}%</Text>
                   <Text style={{ fontSize: 8, color: '#555' }}>{formatCurrency(invoice.taxAmountCents, invoice.currency)}</Text>
@@ -232,7 +249,7 @@ export const InvoicePDF = ({ invoice, businessId, paymentType, bankDetails }: In
           </View>
 
           {/* Notes */}
-          {invoice.metadata?.notes && (
+          {visibility.showNotes && invoice.metadata?.notes && (
             <View style={styles.notes}>
               <Text style={styles.label}>Notes</Text>
               <Text style={{ fontSize: 8, color: '#555' }}>{invoice.metadata.notes}</Text>
@@ -262,16 +279,29 @@ const getSettingsForPDF = () => {
 };
 
 export const downloadInvoicePDF = async (invoice: Invoice) => {
-  const { businessId, paymentType, bankDetails } = getSettingsForPDF();
-  const blob = await pdf(
-    <InvoicePDF invoice={invoice} businessId={businessId} paymentType={paymentType} bankDetails={bankDetails} />
-  ).toBlob();
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `Invoice-${invoice.invoiceNumber}.pdf`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  try {
+    const { businessId, paymentType, bankDetails } = getSettingsForPDF();
+    // Pass visibility explicitly - use invoice's visibility or defaults
+    const visibility = invoice.visibility || DEFAULT_VISIBILITY;
+    const blob = await pdf(
+      <InvoicePDF
+        invoice={invoice}
+        businessId={businessId}
+        paymentType={paymentType}
+        bankDetails={bankDetails}
+        visibility={visibility}
+      />
+    ).toBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Invoice-${invoice.invoiceNumber}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    throw error;
+  }
 };

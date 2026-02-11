@@ -22,6 +22,15 @@ export interface LineItem {
   amountCents: number;
 }
 
+export interface InvoiceVisibility {
+  showLogo: boolean;
+  showBusinessId: boolean;
+  showBankDetails: boolean;
+  showTax: boolean;
+  showDiscount: boolean;
+  showNotes: boolean;
+}
+
 export interface Invoice {
   id: string;
   userId?: string;
@@ -42,6 +51,7 @@ export interface Invoice {
   taxRate: number;
   taxAmountCents: number;
   totalCents: number;
+  visibility?: InvoiceVisibility;
   metadata?: {
     tags?: string[];
     notes?: string;

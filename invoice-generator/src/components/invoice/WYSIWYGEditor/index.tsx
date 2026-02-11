@@ -97,9 +97,10 @@ export const WYSIWYGEditor = ({
     items,
     taxRate,
     discount,
+    visibility,
     metadata: notes ? { notes } : undefined,
     ...totals,
-  }), [invoiceNumber, date, dueDate, currency, from, to, items, taxRate, discount, notes, totals, initial?.id]);
+  }), [invoiceNumber, date, dueDate, currency, from, to, items, taxRate, discount, visibility, notes, totals, initial?.id]);
 
   const handleSubmit = useCallback(() => {
     onSubmit(getDraft());
