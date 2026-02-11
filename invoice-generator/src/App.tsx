@@ -1,9 +1,10 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ChakraProvider } from '@chakra-ui/react';
+import { ChakraProvider, Flex, Spinner } from '@chakra-ui/react';
 import { theme } from './theme';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useDataSync } from './hooks/useDataSync';
 import { AppShell } from './components/layout/AppShell';
+import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { InvoiceCreate } from './pages/InvoiceCreate';
 import { InvoiceEdit } from './pages/InvoiceEdit';
@@ -18,27 +19,49 @@ function DataSyncProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function App() {
+function AppRoutes() {
+  const { user, isLoading } = useAuth();
   const isFirstTime = useSettingsStore((s) => s.isFirstTime);
 
+  // Show loading spinner while checking auth
+  if (isLoading) {
+    return (
+      <Flex h="100vh" justify="center" align="center" bg="brand.50">
+        <Spinner size="xl" color="accent.500" thickness="3px" />
+      </Flex>
+    );
+  }
+
+  // Not authenticated - show auth page
+  if (!user) {
+    return <Auth />;
+  }
+
+  // Authenticated - show app
+  return (
+    <DataSyncProvider>
+      <AppShell>
+        <Routes>
+          <Route path="/" element={isFirstTime ? <Navigate to="/business" replace /> : <Dashboard />} />
+          <Route path="/invoices/new" element={<InvoiceCreate />} />
+          <Route path="/invoices/:id/edit" element={<InvoiceEdit />} />
+          <Route path="/invoices/:id/preview" element={<InvoicePreviewPage />} />
+          <Route path="/clients" element={<Clients />} />
+          <Route path="/business" element={<BusinessDetails />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </AppShell>
+    </DataSyncProvider>
+  );
+}
+
+function App() {
   return (
     <ChakraProvider theme={theme}>
       <AuthProvider>
-        <DataSyncProvider>
-          <HashRouter>
-            <AppShell>
-              <Routes>
-              <Route path="/" element={isFirstTime ? <Navigate to="/business" replace /> : <Dashboard />} />
-              <Route path="/invoices/new" element={<InvoiceCreate />} />
-              <Route path="/invoices/:id/edit" element={<InvoiceEdit />} />
-              <Route path="/invoices/:id/preview" element={<InvoicePreviewPage />} />
-              <Route path="/clients" element={<Clients />} />
-              <Route path="/business" element={<BusinessDetails />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-            </AppShell>
-          </HashRouter>
-        </DataSyncProvider>
+        <HashRouter>
+          <AppRoutes />
+        </HashRouter>
       </AuthProvider>
     </ChakraProvider>
   );
